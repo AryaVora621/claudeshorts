@@ -1,0 +1,33 @@
+# Pipeline settings. Tweak without touching code.
+
+# How many posts to produce per daily run.
+posts_per_day: 3
+
+# Target platforms for the assisted export (Phase 4).
+platforms:
+  - youtube
+  - tiktok
+  - instagram
+
+# Video output geometry (vertical short).
+video:
+  width: 1080
+  height: 1920
+  fps: 30
+  seconds_per_slide: 4.0
+
+# Claude generation (Phase 2).
+model:
+  name: claude-sonnet-4-6
+  max_tokens: 4096
+  # Static system-prompt content is prompt-cached; only per-item news varies.
+  prompt_cache: true
+
+# Ingestion window (Phase 1): ignore items older than this many hours.
+ingest:
+  max_age_hours: 48
+  per_source_limit: 25
+
+# Selection / memory (Phase 2): how far back to look when deduping + detecting follow-ups.
+select:
+  lookback_days: 14

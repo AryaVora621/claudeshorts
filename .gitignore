@@ -26,6 +26,11 @@ env/
 *.egg-info/
 .pytest_cache/
 
+# Runtime state & artifacts (regenerated, not source)
+data/
+review/
+publish/
+
 # Media artifacts (large, regenerated)
 output/
 renders/

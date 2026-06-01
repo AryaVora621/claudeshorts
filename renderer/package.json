@@ -1,0 +1,14 @@
+{
+  "name": "claudeshorts-renderer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Renders slides JSON into a vertical MP4 via Playwright frame capture + ffmpeg.",
+  "scripts": {
+    "render": "node render.mjs",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}

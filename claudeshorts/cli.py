@@ -1,0 +1,86 @@
+"""Typer CLI entrypoint for the claudeshorts pipeline.
+
+Phase 0 wires up the command surface and a working ``init-db``. The remaining
+commands are stubs that later phases fill in:
+    ingest   (Phase 1)   generate (Phase 2)   render (Phase 3)
+    serve    (Phase 4)   run      (Phase 5)
+"""
+
+from __future__ import annotations
+
+import typer
+
+from . import __version__
+from .config import DB_PATH
+from .store import init_db
+
+app = typer.Typer(
+    help="Automated tech/AI news -> short-form video/slideshow pipeline.",
+    no_args_is_help=True,
+    add_completion=False,
+)
+
+
+@app.command("init-db")
+def init_db_cmd() -> None:
+    """Create the SQLite schema (idempotent)."""
+    path = init_db()
+    typer.echo(f"Initialized database at {path}")
+
+
+@app.command("ingest")
+def ingest_cmd(
+    since: str = typer.Option(None, help="ISO timestamp lower bound (overrides config window)."),
+    limit: int = typer.Option(None, help="Max items per source."),
+) -> None:
+    """Fetch + dedupe news into the store. [Phase 1]"""
+    raise typer.Exit(_not_yet("ingest", "Phase 1"))
+
+
+@app.command("select")
+def select_cmd() -> None:
+    """Pick the day's topics, deduping and detecting follow-ups. [Phase 2]"""
+    raise typer.Exit(_not_yet("select", "Phase 2"))
+
+
+@app.command("generate")
+def generate_cmd() -> None:
+    """Turn selected topics into slides + captions via Claude. [Phase 2]"""
+    raise typer.Exit(_not_yet("generate", "Phase 2"))
+
+
+@app.command("render")
+def render_cmd(post_id: int = typer.Argument(..., help="posts.id to render.")) -> None:
+    """Render a post's slides to an MP4 via the Node renderer. [Phase 3]"""
+    raise typer.Exit(_not_yet("render", "Phase 3"))
+
+
+@app.command("serve")
+def serve_cmd(
+    host: str = typer.Option("127.0.0.1"),
+    port: int = typer.Option(8000),
+) -> None:
+    """Run the local review dashboard. [Phase 4]"""
+    raise typer.Exit(_not_yet("serve", "Phase 4"))
+
+
+@app.command("run")
+def run_cmd() -> None:
+    """Run the full daily pipeline (ingest -> ... -> review queue). [Phase 5]"""
+    raise typer.Exit(_not_yet("run", "Phase 5"))
+
+
+@app.command("version")
+def version_cmd() -> None:
+    """Print the version and db path."""
+    typer.echo(f"claudeshorts {__version__}")
+    typer.echo(f"db: {DB_PATH}")
+
+
+def _not_yet(name: str, phase: str) -> int:
+    typer.echo(f"`{name}` is not implemented yet ({phase}).", err=True)
+    return 1
+
+
+if __name__ == "__main__":
+    app()

@@ -1,0 +1,46 @@
+# News sources for the tech/AI niche. Each source has a kind, an identifier,
+# and a weight used by the selection step (higher = preferred when ranking).
+
+sources:
+  # --- RSS feeds (kind: rss, url) ---
+  - name: techcrunch
+    kind: rss
+    url: https://techcrunch.com/feed/
+    weight: 1.2
+
+  - name: theverge
+    kind: rss
+    url: https://www.theverge.com/rss/index.xml
+    weight: 1.1
+
+  - name: arstechnica
+    kind: rss
+    url: https://feeds.arstechnica.com/arstechnica/index
+    weight: 1.1
+
+  - name: arxiv_cs_ai
+    kind: rss
+    url: http://export.arxiv.org/rss/cs.AI
+    weight: 0.9
+
+  - name: arxiv_cs_lg
+    kind: rss
+    url: http://export.arxiv.org/rss/cs.LG
+    weight: 0.9
+
+  # --- Hacker News via Algolia API (kind: hackernews) ---
+  - name: hackernews_front
+    kind: hackernews
+    query: ""          # empty = front page
+    weight: 1.3
+
+  # --- Reddit JSON listings (kind: reddit, subreddit) ---
+  - name: reddit_machinelearning
+    kind: reddit
+    subreddit: MachineLearning
+    weight: 1.0
+
+  - name: reddit_technology
+    kind: reddit
+    subreddit: technology
+    weight: 0.8
