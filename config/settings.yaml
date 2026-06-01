@@ -1,5 +1,12 @@
 # Pipeline settings. Tweak without touching code.
 
+# Channel identity (used subtly on the outro/watermark — NOT for slide theming;
+# slide colors are chosen per-post to match the news subject).
+channel:
+  name: "Midnight Curiosity"
+  handle: "@midnight.curiosity"
+  logo: "assets/logo.png"     # optional; drop the moon logo here to show on outro
+
 # How many posts to produce per daily run.
 posts_per_day: 3
 

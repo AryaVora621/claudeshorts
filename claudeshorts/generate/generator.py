@@ -41,6 +41,13 @@ Rules:
 - thread_slug: a stable kebab-case id for the storyline (e.g. 'gpt-5-launch').
   If PRIOR COVERAGE is provided, REUSE its storyline: open slide 1 with a quick
   "Update:" recap, then focus the rest on what is new. Keep the same slug.
+- theme: choose a color palette that matches the SUBJECT of the news (the
+  company / product / topic), NOT the channel. Examples: Nvidia -> green
+  (#76B900) on near-black; Anthropic -> clay/orange (#D97757) on warm gray;
+  OpenAI -> teal/white on black; Apple -> silver on space-gray; Google ->
+  blue (#4285F4) on white; Bitcoin/crypto -> orange (#F7931A) on black;
+  generic AI research -> indigo on slate. Pick hex colors with strong contrast
+  that read well on a vertical phone video, and set mood (dark|light) to match.
 - Captions: tailor per platform. YouTube needs a title + 1-2 line description.
   TikTok and Instagram need a short caption. Provide 3-6 relevant hashtags each.
 - Attribute the source naturally where it fits.

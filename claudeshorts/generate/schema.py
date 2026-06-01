@@ -8,7 +8,10 @@ offline without calling Claude).
 
 from __future__ import annotations
 
+import re
 from typing import Any
+
+_HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
 POST_TOOL: dict[str, Any] = {
     "name": "emit_post",
@@ -33,6 +36,22 @@ POST_TOOL: dict[str, Any] = {
                 "type": "string",
                 "description": "1-2 sentence running summary of the storyline, "
                                "updated to include this item.",
+            },
+            "theme": {
+                "type": "object",
+                "description": "Color theme matching the SUBJECT of the news "
+                               "(the company/product/topic), NOT the channel brand. "
+                               "e.g. Nvidia -> green on black; Anthropic -> clay/orange "
+                               "on warm gray; OpenAI -> teal on black.",
+                "properties": {
+                    "subject": {"type": "string",
+                                "description": "Brand/company/topic the theme reflects, e.g. 'Nvidia'."},
+                    "primary": {"type": "string", "description": "Primary hex, e.g. '#76B900'."},
+                    "secondary": {"type": "string", "description": "Background hex, e.g. '#0A0A0A'."},
+                    "accent": {"type": "string", "description": "Highlight hex, e.g. '#FFFFFF'."},
+                    "mood": {"type": "string", "enum": ["dark", "light"]},
+                },
+                "required": ["subject", "primary", "secondary", "accent", "mood"],
             },
             "slides": {
                 "type": "array",
@@ -87,7 +106,7 @@ POST_TOOL: dict[str, Any] = {
         },
         "required": [
             "title", "thread_slug", "thread_title", "thread_summary",
-            "slides", "captions",
+            "theme", "slides", "captions",
         ],
     },
 }
@@ -108,6 +127,19 @@ def validate_post(data: Any) -> list[str]:
     for key in ("title", "thread_slug", "thread_title", "thread_summary"):
         if not isinstance(data.get(key), str) or not data.get(key):
             errors.append(f"missing/empty string field: {key}")
+
+    theme = data.get("theme")
+    if not isinstance(theme, dict):
+        errors.append("theme must be an object")
+    else:
+        if theme.get("mood") not in ("dark", "light"):
+            errors.append("theme.mood must be 'dark' or 'light'")
+        if not theme.get("subject"):
+            errors.append("theme.subject missing")
+        for color in ("primary", "secondary", "accent"):
+            value = theme.get(color)
+            if not isinstance(value, str) or not _HEX_RE.match(value):
+                errors.append(f"theme.{color} must be a hex color")
 
     slides = data.get("slides")
     if not isinstance(slides, list) or not (3 <= len(slides) <= 7):
