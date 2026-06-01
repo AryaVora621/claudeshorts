@@ -6,5 +6,6 @@ dedupe and build follow-ups across days.
 """
 
 from .db import SCHEMA, connect, init_db
+from .items import count_items, insert_item
 
-__all__ = ["SCHEMA", "connect", "init_db"]
+__all__ = ["SCHEMA", "connect", "init_db", "insert_item", "count_items"]

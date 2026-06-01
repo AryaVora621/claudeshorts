@@ -1,4 +1,8 @@
 """News ingestion: fetch from configured sources, normalize, dedupe, store.
 
-Implemented in Phase 1.
+Public entrypoint: ``run_ingest``.
 """
+
+from .runner import run_ingest
+
+__all__ = ["run_ingest"]

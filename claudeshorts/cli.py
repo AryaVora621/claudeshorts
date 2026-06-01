@@ -34,7 +34,20 @@ def ingest_cmd(
     limit: int = typer.Option(None, help="Max items per source."),
 ) -> None:
     """Fetch + dedupe news into the store. [Phase 1]"""
-    raise typer.Exit(_not_yet("ingest", "Phase 1"))
+    from .ingest import run_ingest
+
+    init_db()
+    stats = run_ingest(since=since, limit=limit)
+    typer.echo(
+        f"fetched={stats['fetched']} stored={stats['stored']} "
+        f"duplicates={stats['duplicates']} skipped_old={stats['skipped_old']} "
+        f"total_items={stats['total_items']}"
+    )
+    for name, info in stats["by_source"].items():
+        if "error" in info:
+            typer.echo(f"  {name}: ERROR {info['error']}", err=True)
+        else:
+            typer.echo(f"  {name}: fetched={info['fetched']} stored={info['stored']}")
 
 
 @app.command("select")
