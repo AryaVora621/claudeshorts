@@ -1,0 +1,42 @@
+# Secrets / credentials — never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials*.json
+client_secret*.json
+token*.json
+
+# Node
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+.pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Media artifacts (large, regenerated)
+output/
+renders/
+*.mp4
+*.mov
+*.wav
+*.mp3
+!assets/**
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
