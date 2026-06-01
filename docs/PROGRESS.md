@@ -3,7 +3,27 @@
 > Living project memory. Update at the end of every phase so a fresh session
 > resumes without re-deriving context. See the master plan for full detail.
 
-## Status: Phase 4 complete — review queue + assisted publish
+## Status: ALL PHASES COMPLETE (0–5) — MVP pipeline end to end
+
+The full pipeline is built and verified: `ingest -> select -> generate (Claude
+subscription) -> render (themed animated MP4) -> review dashboard -> assisted
+publish export`, with a once-daily idempotent runner + systemd/cron scheduling.
+Content memory (threads) drives dedupe + follow-ups; per-post themes match the
+news subject. Only Chromium frame-capture and live network steps are verified on
+the desktop (blocked in this container); all logic is verified here.
+
+### Done
+- **Phase 5 — Orchestration & daily scheduling**
+  - `orchestrate/runner.py` — `run_pipeline()`: idempotent per-day (guarded by a
+    new `runs` table), bounded retries on ingest/generate, structured logging,
+    per-post render isolation. Flags: `limit`, `force`, `skip_render`.
+  - `store/runs.py` + `runs` table — daily run log / guard.
+  - Wired `cli run`. `deploy/` — systemd user `.service` + `.timer`, cron
+    fallback, and full desktop setup README.
+  - **Verified**: full run (2 posts, 1 follow-up, queued), idempotent skip,
+    `--force`, `--skip-render`, run-log recording.
+
+### Done (earlier) — Phase 4 — review queue + assisted publish
 
 ### Done
 - **Phase 4 — Review queue + assisted publish**
@@ -108,13 +128,13 @@
   - `.env.example`, `.gitignore` updated for `data/ review/ publish/`.
   - Project memory: this file + `CLAUDE.md`.
 
-### Next: Phase 5 — Orchestration & daily scheduling
-- `orchestrate/`: idempotent daily runner `ingest -> select -> generate ->
-  render -> queue` (one run/day guard, never reuse posted items, retries +
-  logging). Wire `cli run` (honor posts_per_day).
-- systemd user timer (+ cron fallback) for the desktop; document SSH/.env setup.
-- Verify: `cli run` yields 2-3 rendered posts in the queue, no dupes across runs;
-  developing-story rerun produces a follow-up bound to the thread.
+### Next / backlog (post-MVP)
+- Run on the desktop end-to-end with live network + Chromium (the one path not
+  testable in-container) and tune the slideshow template visually.
+- Choose + wire the humanlike TTS engine (`audio.tts.command`: Piper or edge-tts)
+  and add royalty-free music to `assets/music/`.
+- Later: real publishing APIs (YouTube Data API first), starting from the
+  `publish/<platform>/` export seam.
 
 ### Setup notes for the desktop
 - Renderer needs a browser: `cd renderer && npm install && npx playwright install chromium`.

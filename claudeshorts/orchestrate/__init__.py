@@ -1,4 +1,8 @@
 """Orchestration: the idempotent daily runner that ties the pipeline together.
 
-Implemented in Phase 5, plus the systemd timer / cron scheduling unit.
+Public entrypoint: ``run_pipeline``. Scheduling units live in ``deploy/``.
 """
+
+from .runner import run_pipeline, setup_logging
+
+__all__ = ["run_pipeline", "setup_logging"]

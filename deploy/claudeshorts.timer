@@ -1,0 +1,11 @@
+[Unit]
+Description=Run claudeshorts daily
+
+[Timer]
+# Every day at 08:00 local time (plus a small randomized delay).
+OnCalendar=*-*-* 08:00:00
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -61,6 +61,17 @@ CREATE TABLE IF NOT EXISTS post_threads (
     thread_id  INTEGER NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
     PRIMARY KEY (post_id, thread_id)
 );
+
+CREATE TABLE IF NOT EXISTS runs (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_date      TEXT    NOT NULL,
+    status        TEXT    NOT NULL DEFAULT 'running',   -- running|ok|error
+    posts_created INTEGER NOT NULL DEFAULT 0,
+    detail        TEXT,
+    started_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+    finished_at   TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_runs_date ON runs(run_date);
 """
 
 

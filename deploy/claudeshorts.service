@@ -1,0 +1,14 @@
+[Unit]
+Description=claudeshorts daily pipeline (ingest -> generate -> render -> review queue)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# EDIT these paths for your desktop checkout:
+WorkingDirectory=%h/claudeshorts
+# Uses the project venv; generation runs under your logged-in `claude` CLI plan.
+ExecStart=%h/claudeshorts/.venv/bin/python -m claudeshorts.cli run
+# Keep PATH so `node`, `ffmpeg`, `claude`, `playwright` resolve.
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+TimeoutStartSec=1800

@@ -132,9 +132,24 @@ def serve_cmd(
 
 
 @app.command("run")
-def run_cmd() -> None:
+def run_cmd(
+    limit: int = typer.Option(None, help="Max posts (default: posts_per_day)."),
+    force: bool = typer.Option(False, help="Run again even if today already completed."),
+    skip_render: bool = typer.Option(False, help="Stop after generation (no render)."),
+) -> None:
     """Run the full daily pipeline (ingest -> ... -> review queue). [Phase 5]"""
-    raise typer.Exit(_not_yet("run", "Phase 5"))
+    from .orchestrate import run_pipeline
+
+    summary = run_pipeline(limit=limit, force=force, skip_render=skip_render)
+    if summary.get("skipped"):
+        typer.echo(f"Skipped: {summary['reason']} ({summary['date']}). Use --force to repeat.")
+        return
+    typer.echo(
+        f"Run {summary['date']}: generated={len(summary.get('generated', []))} "
+        f"follow_ups={len(summary.get('follow_ups', []))} "
+        f"rendered={len(summary.get('rendered', []))}"
+    )
+    typer.echo("Review at: claudeshorts serve")
 
 
 @app.command("version")
