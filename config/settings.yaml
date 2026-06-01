@@ -23,6 +23,24 @@ video:
   fps: 30
   seconds_per_slide: 4.0
 
+# Audio for rendered videos (Phase 3).
+audio:
+  # mode: silent | music | tts
+  #   silent -> on-screen text only
+  #   music  -> royalty-free bed from music_dir (first track), trimmed to length
+  #   tts    -> narrate each slide's voiceover line; mixes a ducked music bed if present
+  mode: silent
+  music_dir: assets/music
+  music_volume: 0.18          # music mode bed volume
+  tts:
+    # Command template: narration text arrives on STDIN; write audio to {out}.
+    # Pick a HUMANLIKE, free engine (not robotic). Examples:
+    #   Piper (local, free):     piper --model en_US-amy-medium.onnx --output_file {out}
+    #   edge-tts (online, free): edge-tts --voice en-US-AvaNeural --write-media {out} --text-file /dev/stdin
+    command: "piper --model en_US-amy-medium.onnx --output_file {out}"
+    pad_seconds: 0.6          # silence padding added to each slide's narration
+    music_volume: 0.12        # ducked bed volume under narration
+
 # Claude generation (Phase 2).
 model:
   # backend: how we call Claude.

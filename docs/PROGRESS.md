@@ -3,7 +3,33 @@
 > Living project memory. Update at the end of every phase so a fresh session
 > resumes without re-deriving context. See the master plan for full detail.
 
-## Status: Phase 2 complete — Claude generation
+## Status: Phase 3 complete — Node renderer (HTML slideshow -> MP4)
+
+### Done
+- **Phase 3 — Node renderer**
+  - `renderer/templates/slideshow.html` — punchy/animated vertical template
+    (animated gradient blobs, kinetic headline + staggered bullets, channel
+    watermark, logo outro). Themed per-post via injected CSS vars
+    (`--primary/--secondary/--accent`, light/dark). Deterministic
+    `window.__render(slide, localMs, globalMs)` so capture is reproducible.
+  - `renderer/lib/timeline.mjs` — pure frame plan; TTS stretches a slide to fit
+    its narration. `renderer/lib/ffmpeg.mjs` — pure ffmpeg/ffprobe arg builders
+    (encode, thumbnail, music bed, narration timeline w/ ducked music, mux).
+  - `renderer/render.mjs` — orchestrator: optional TTS synth -> Playwright frame
+    capture -> ffmpeg encode -> audio (music/tts) -> mux. Audio modes:
+    silent | music | tts (config-driven TTS command, e.g. Piper/edge-tts).
+  - `claudeshorts/render/bridge.py` — builds the render spec (theme + slides +
+    channel + logo data-URI + music pickup) and invokes the Node renderer.
+  - Store: added `posts.theme_json` (+ additive migration); `insert_post`/
+    `get_post`/runner now persist & return the per-post theme.
+  - Wired `cli render <post-id>` with clean error handling.
+  - **Verified**: timeline math + the full ffmpeg pipeline (encode/thumb/music/
+    narration+ducked bed/mux) with REAL ffmpeg; theme migration + persistence +
+    `build_spec`; bridge->Node wiring reaches Playwright. NOT verifiable in this
+    container: actual Chromium capture (browser CDN blocked) — run
+    `npx playwright install chromium` on the desktop.
+
+## Status (history) — Phase 2 complete — Claude generation
 
 ### Done
 - **Phase 2 — Claude generation**
@@ -61,13 +87,20 @@
   - `.env.example`, `.gitignore` updated for `data/ review/ publish/`.
   - Project memory: this file + `CLAUDE.md`.
 
-### Next: Phase 3 — Node renderer (HTML slideshow -> MP4)
-- `renderer/templates/`: 9:16 (1080x1920) HTML/CSS slideshow driven by a post's
-  slides JSON (title -> content -> outro, CSS animations).
-- `renderer/render.mjs`: Playwright frame capture at config fps/slide -> ffmpeg
-  H.264 MP4 + thumbnail. Audio optional/stubbed this phase.
-- `claudeshorts/render/`: subprocess bridge Python -> Node (slides JSON -> MP4).
-- Wire `cli render <post-id>`. Verify: render a Phase-2 post -> playable MP4.
+### Next: Phase 4 — Review queue + assisted publish
+- On render, assemble `review/<date>/<post-id>/` (video.mp4, thumb.png,
+  captions.md per platform, manifest.json); set post status `rendered`.
+- `claudeshorts/review/` FastAPI dashboard (`cli serve`): list pending posts,
+  inline video preview, Approve/Reject.
+- `claudeshorts/publish/`: on approve, export MP4 + per-platform captions to
+  `publish/<platform>/<date>/`; mark `exported`; stamp `published_at`.
+- Verify: serve -> approve -> files land in publish/<platform>/.
+
+### Setup notes for the desktop
+- Renderer needs a browser: `cd renderer && npm install && npx playwright install chromium`.
+- For TTS audio: install a humanlike free engine and set `audio.tts.command`
+  (Piper local, or `edge-tts`); drop music in `assets/music/`. Default audio is
+  `silent` so renders work with no extra setup.
 
 ### Open decisions / notes
 - **Generation backend = `claude_cli`** (Claude Pro/Max subscription via the

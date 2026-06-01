@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS posts (
                                               -- draft|rendered|approved|rejected|exported
     title         TEXT,
     slides_json   TEXT,                       -- JSON: structured slide content
+    theme_json    TEXT,                       -- JSON: per-post color theme
     captions_json TEXT,                       -- JSON: per-platform captions/hashtags
     review_note   TEXT,
     published_at  TEXT,                       -- stamped on export (content memory)
@@ -72,10 +73,25 @@ def connect(db_path: Path | None = None) -> sqlite3.Connection:
     return conn
 
 
+# Columns added after initial release: (table, column, definition). Applied as
+# additive ALTERs so existing databases pick them up without a rebuild.
+_MIGRATIONS = [
+    ("posts", "theme_json", "TEXT"),
+]
+
+
+def _apply_migrations(conn: sqlite3.Connection) -> None:
+    for table, column, decl in _MIGRATIONS:
+        cols = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+        if column not in cols:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+
+
 def init_db(db_path: Path | None = None) -> Path:
     """Create the schema if needed. Idempotent. Returns the db path used."""
     path = db_path or DB_PATH
     with connect(path) as conn:
         conn.executescript(SCHEMA)
+        _apply_migrations(conn)
         conn.commit()
     return path

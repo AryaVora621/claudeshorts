@@ -43,6 +43,7 @@ def run_generate(
                 title=data["title"],
                 slides=data["slides"],
                 captions=data["captions"],
+                theme=data["theme"],
                 status="draft",
             )
             thread_id = upsert_thread(

@@ -11,6 +11,7 @@ def _row_to_post(row: sqlite3.Row) -> dict[str, Any]:
     d = dict(row)
     d["item_ids"] = json.loads(d["item_ids"]) if d.get("item_ids") else []
     d["slides"] = json.loads(d["slides_json"]) if d.get("slides_json") else None
+    d["theme"] = json.loads(d["theme_json"]) if d.get("theme_json") else None
     d["captions"] = json.loads(d["captions_json"]) if d.get("captions_json") else None
     return d
 
@@ -22,14 +23,16 @@ def insert_post(
     title: str,
     slides: Any,
     captions: Any,
+    theme: Any = None,
     status: str = "draft",
 ) -> int:
     """Insert a generated post; returns the new post id."""
     cur = conn.execute(
-        "INSERT INTO posts (item_ids, status, title, slides_json, captions_json) "
-        "VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO posts "
+        "(item_ids, status, title, slides_json, theme_json, captions_json) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
         (json.dumps(item_ids), status, title,
-         json.dumps(slides), json.dumps(captions)),
+         json.dumps(slides), json.dumps(theme), json.dumps(captions)),
     )
     return int(cur.lastrowid)
 

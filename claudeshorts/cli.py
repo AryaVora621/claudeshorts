@@ -92,7 +92,26 @@ def generate_cmd(
 @app.command("render")
 def render_cmd(post_id: int = typer.Argument(..., help="posts.id to render.")) -> None:
     """Render a post's slides to an MP4 via the Node renderer. [Phase 3]"""
-    raise typer.Exit(_not_yet("render", "Phase 3"))
+    from .render import render_post
+    from .store import connect, get_post
+
+    init_db()
+    with connect() as conn:
+        post = get_post(conn, post_id)
+    if not post:
+        typer.echo(f"No post with id {post_id}.", err=True)
+        raise typer.Exit(1)
+    try:
+        result = render_post(post)
+    except RuntimeError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1)
+    typer.echo(
+        f"rendered post #{post_id}: {result['video']} "
+        f"({result['frames']} frames, {result['duration_ms']}ms, "
+        f"audio={result['audio_mode']})"
+    )
+    typer.echo(f"thumbnail: {result['thumb']}")
 
 
 @app.command("serve")
