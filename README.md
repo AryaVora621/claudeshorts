@@ -27,6 +27,18 @@ ingest ──▶ select ──▶ generate ──▶ render ──▶ review que
 
 ## Quick start
 
+**Easiest — the dashboard launcher** (sets up the venv + deps, then opens the
+dashboard in your browser):
+
+- **macOS**: double-click `start-dashboard.command`
+- **Windows**: double-click `start-dashboard.bat`
+- **Linux**: `./start-dashboard.sh`
+
+From the dashboard you can connect your Anthropic account, run the pipeline,
+review renders, manually add/generate articles, and schedule posts.
+
+**Manual / CLI:**
+
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -U pip setuptools wheel
 .venv/bin/pip install -r requirements.txt
@@ -34,7 +46,7 @@ cd renderer && npm install && npx playwright install chromium && cd ..
 claude login                                   # subscription auth (no API key)
 
 .venv/bin/python -m claudeshorts.cli run       # ingest → generate → render → queue
-.venv/bin/python -m claudeshorts.cli serve     # review dashboard @ 127.0.0.1:8000
+.venv/bin/python -m claudeshorts.cli serve     # dashboard @ 127.0.0.1:8000
 ```
 
 Daily scheduling (systemd timer / cron) and full desktop setup: see
@@ -48,10 +60,15 @@ Daily scheduling (systemd timer / cron) and full desktop setup: see
    Claude structured slides/captions/theme.
 3. **Renderer** (`renderer/`) — themed animated HTML slideshow → 1080×1920 MP4
    (Playwright frame capture + ffmpeg), optional music/TTS audio.
-4. **Review + publish** (`claudeshorts/review`, `claudeshorts/publish`) — local
-   approval dashboard → per-platform export folders.
+4. **Review + publish** (`claudeshorts/review`, `claudeshorts/publish`) — review
+   folders + per-platform export; assisted (manual-upload) publishing.
 5. **Orchestration** (`claudeshorts/orchestrate`) — idempotent daily runner +
    scheduling units.
+6. **Dashboard** (`claudeshorts/dashboard`) — server-rendered operator console
+   (`cli serve`): overview + run controls, review queue, article browser /
+   manual ingest, posts, future-posts schedule, content-memory threads, run
+   history, and Settings to connect your Anthropic account. Background jobs
+   stream logs live. Double-click launchers for macOS/Windows/Linux.
 
 ## Config
 

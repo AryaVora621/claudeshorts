@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}claudeshorts{% endblock %} · dashboard</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <nav class="side">
+    <div class="brand">🌙 {{ channel }}</div>
+    <a href="/" class="{{ 'on' if active=='overview' }}">Overview</a>
+    <a href="/review" class="{{ 'on' if active=='review' }}">Review queue</a>
+    <a href="/articles" class="{{ 'on' if active=='articles' }}">Articles</a>
+    <a href="/posts" class="{{ 'on' if active=='posts' }}">Posts</a>
+    <a href="/schedule" class="{{ 'on' if active=='schedule' }}">Schedule</a>
+    <a href="/threads" class="{{ 'on' if active=='threads' }}">Threads</a>
+    <a href="/runs" class="{{ 'on' if active=='runs' }}">Runs</a>
+    <a href="/settings" class="{{ 'on' if active=='settings' }}">Settings</a>
+  </nav>
+  <main>
+    {% if msg %}<div class="flash ok">{{ msg }}</div>{% endif %}
+    {% if err %}<div class="flash err">{{ err }}</div>{% endif %}
+    {% block body %}{% endblock %}
+  </main>
+</body>
+</html>

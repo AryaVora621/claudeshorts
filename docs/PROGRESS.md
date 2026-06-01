@@ -3,7 +3,7 @@
 > Living project memory. Update at the end of every phase so a fresh session
 > resumes without re-deriving context. See the master plan for full detail.
 
-## Status: ALL PHASES COMPLETE (0–5) — MVP pipeline end to end
+## Status: ALL PHASES COMPLETE (0–5) + Phase 6 dashboard — MVP pipeline end to end
 
 The full pipeline is built and verified: `ingest -> select -> generate (Claude
 subscription) -> render (themed animated MP4) -> review dashboard -> assisted
@@ -13,6 +13,34 @@ news subject. Only Chromium frame-capture and live network steps are verified on
 the desktop (blocked in this container); all logic is verified here.
 
 ### Done
+- **Phase 6 — Operator dashboard** (`claudeshorts/dashboard/`)
+  - Server-rendered FastAPI console (Jinja2 templates + `static/app.css`), now
+    served by `cli serve`. Sections: Overview (counts + run/ingest/generate
+    buttons), Review queue (moved from `review/app.py`), Articles (browse + add
+    a manual article, *generate now* or *pin to future posts*), Posts (render /
+    export / schedule), Schedule (future-posts queue), Threads (content memory),
+    Runs history, Settings (connect Anthropic account + tune pipeline).
+  - `dashboard/jobs.py` — in-process background-job runner; a logging handler on
+    the `claudeshorts` logger fans records to the owning thread's job, streamed
+    to the browser over **SSE** (`/jobs/{id}/stream`) for live logs.
+  - `dashboard/auth.py` — Anthropic connection state: detect `claude` CLI +
+    login, or paste an API key (persisted to gitignored `.env`, switches backend
+    to `api`). `dashboard/settings_io.py` — read/write `settings.yaml` (drops
+    comments on save; documented in the UI).
+  - Store additions: `pins` table + `store/pins.py` (operator-flagged items;
+    `select_topics` force-includes them, run_generate clears the pin);
+    `posts.scheduled_for` column + `set_schedule`/`scheduled_posts`/`due_posts`;
+    `insert_manual_item`, `get_item`, `latest_items`, `all_posts`,
+    `status_counts`, `threads_with_posts`/`posts_for_thread`, `recent_runs`.
+  - `generate_for_item()` — generate one post from a specific item (still detects
+    follow-up threads). `publish_due_posts()` drains the schedule queue; the
+    daily runner calls it at the tail.
+  - Launchers: `start-dashboard.command` (macOS double-click), `start-dashboard.sh`
+    (Linux), `start-dashboard.bat` (Windows) — venv + deps + renderer npm +
+    init-db, then serve and open the browser.
+  - **Verified** (TestClient + mocks): all GET pages 200; manual add→pin→select
+    force-include; `generate_for_item` (mock) creates draft + clears pin;
+    schedule/`due_posts`; settings round-trip; background job + SSE done event.
 - **Phase 5 — Orchestration & daily scheduling**
   - `orchestrate/runner.py` — `run_pipeline()`: idempotent per-day (guarded by a
     new `runs` table), bounded retries on ingest/generate, structured logging,

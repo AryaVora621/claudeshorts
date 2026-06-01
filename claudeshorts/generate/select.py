@@ -14,7 +14,8 @@ from typing import Any
 from ..config import settings
 from ..config import sources as load_sources
 from ..store import connect
-from ..store.items import recent_items
+from ..store.items import get_items, recent_items
+from ..store.pins import pinned_item_ids
 from ..store.posts import used_item_ids
 from ..store.threads import open_threads
 
@@ -85,8 +86,28 @@ def select_topics(
 
     with connect() as conn:
         used = used_item_ids(conn, lookback)
-        candidates = [it for it in recent_items(conn, lookback) if it["id"] not in used]
+        pinned_ids = [i for i in pinned_item_ids(conn) if i not in used]
+        pinned = get_items(conn, pinned_ids)  # preserves pin order
+        skip = used | set(pinned_ids)
+        candidates = [it for it in recent_items(conn, lookback) if it["id"] not in skip]
         threads = open_threads(conn)
+
+    selected: list[dict[str, Any]] = []
+    picked_tokens: list[set[str]] = []
+
+    # Operator-pinned items come first and ignore the freshness/dedupe gates —
+    # the human explicitly asked for them.
+    for it in pinned:
+        selected.append({
+            "item": it,
+            "score": 999.0,
+            "weight": weights.get(it["source"], 1.0),
+            "follow_up_thread": _match_thread(it, threads),
+            "pinned": True,
+        })
+        picked_tokens.append(_tokens(it["title"]))
+        if len(selected) >= limit:
+            return selected
 
     scored: list[tuple[float, dict]] = []
     for it in candidates:
@@ -95,8 +116,6 @@ def select_topics(
         scored.append((score, it))
     scored.sort(key=lambda pair: pair[0], reverse=True)
 
-    selected: list[dict[str, Any]] = []
-    picked_tokens: list[set[str]] = []
     for score, it in scored:
         toks = _tokens(it["title"])
         if any(len(toks & prev) >= _DUP_MIN_OVERLAP for prev in picked_tokens):
@@ -106,6 +125,7 @@ def select_topics(
             "score": round(score, 3),
             "weight": weights.get(it["source"], 1.0),
             "follow_up_thread": _match_thread(it, threads),
+            "pinned": False,
         })
         picked_tokens.append(toks)
         if len(selected) >= limit:

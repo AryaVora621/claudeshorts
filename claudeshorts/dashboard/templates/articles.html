@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Articles{% endblock %}
+{% block body %}
+<h1>Articles</h1>
+<p class="sub">Browse ingested news, or add your own. <b>Generate now</b> turns an
+  article into a draft post immediately; <b>pin</b> queues it so the next run
+  picks it first.</p>
+
+<div class="card">
+  <h2 style="margin-top:0">Add an article</h2>
+  <form method="post" action="/articles/add">
+    <div class="field"><label>Title *</label>
+      <input type="text" name="title" required placeholder="Headline of the story"></div>
+    <div class="field"><label>URL</label>
+      <input type="url" name="url" placeholder="https://…"></div>
+    <div class="field"><label>Summary</label>
+      <textarea name="summary" placeholder="A sentence or two of context (optional)"></textarea></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn green" type="submit" name="action" value="generate">Add &amp; generate now</button>
+      <button class="btn" type="submit" name="action" value="pin">Add to future posts</button>
+    </div>
+  </form>
+</div>
+
+{% if pinned %}
+<h2>Pinned for upcoming posts ({{ pinned|length }})</h2>
+<table>
+  <tr><th>Item</th><th>Source</th><th></th></tr>
+  {% for it in pinned %}
+  <tr>
+    <td>{% if it.url %}<a href="{{ it.url }}" target="_blank" rel="noopener">{{ it.title }}</a>
+        {% else %}{{ it.title }}{% endif %}</td>
+    <td><span class="badge">{{ it.source }}</span></td>
+    <td class="row">
+      <form class="inline" method="post" action="/articles/{{ it.id }}/generate">
+        <button class="btn small green" type="submit">Generate now</button></form>
+      <form class="inline" method="post" action="/articles/{{ it.id }}/unpin">
+        <button class="btn small" type="submit">Unpin</button></form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+<h2>Recent items ({{ items|length }})</h2>
+<table>
+  <tr><th>Title</th><th>Source</th><th>Published</th><th></th></tr>
+  {% for it in items %}
+  <tr>
+    <td>{% if it.url %}<a href="{{ it.url }}" target="_blank" rel="noopener">{{ it.title }}</a>
+        {% else %}{{ it.title }}{% endif %}</td>
+    <td><span class="badge">{{ it.source }}</span></td>
+    <td class="muted">{{ (it.published_at or it.fetched_at or '')[:10] }}</td>
+    <td class="row">
+      <form class="inline" method="post" action="/articles/{{ it.id }}/generate">
+        <button class="btn small green" type="submit">Generate</button></form>
+      {% if it.id in pinned_ids %}
+        <form class="inline" method="post" action="/articles/{{ it.id }}/unpin">
+          <button class="btn small" type="submit">Unpin</button></form>
+      {% else %}
+        <form class="inline" method="post" action="/articles/{{ it.id }}/pin">
+          <button class="btn small" type="submit">Pin</button></form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

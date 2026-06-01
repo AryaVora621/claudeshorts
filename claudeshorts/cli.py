@@ -121,13 +121,13 @@ def serve_cmd(
     host: str = typer.Option("127.0.0.1"),
     port: int = typer.Option(8000),
 ) -> None:
-    """Run the local review dashboard. [Phase 4]"""
+    """Run the local operator dashboard (review, articles, schedule, settings)."""
     import uvicorn
 
-    from .review import create_app
+    from .dashboard import create_app
 
     init_db()
-    typer.echo(f"Review dashboard on http://{host}:{port}")
+    typer.echo(f"Dashboard on http://{host}:{port}")
     uvicorn.run(create_app(), host=host, port=port)
 
 

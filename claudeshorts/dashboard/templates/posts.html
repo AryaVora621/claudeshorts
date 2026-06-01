@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Posts{% endblock %}
+{% block body %}
+<h1>Posts ({{ posts|length }})</h1>
+<p class="sub">Every generated post and its lifecycle. Render drafts, export
+  approved ones, or set a publish date.</p>
+
+{% if not posts %}<p class="empty">No posts yet.</p>{% endif %}
+
+<table>
+  <tr><th>#</th><th>Title</th><th>Status</th><th>Created</th><th>Schedule</th><th>Actions</th></tr>
+  {% for p in posts %}
+  <tr>
+    <td>{{ p.id }}</td>
+    <td>{{ p.title or '(untitled)' }}</td>
+    <td><span class="badge {{ p.status }}">{{ p.status }}</span></td>
+    <td class="muted">{{ (p.created_at or '')[:16] }}</td>
+    <td>
+      <form method="post" action="/posts/{{ p.id }}/schedule" class="row">
+        <input type="date" name="scheduled_for" value="{{ p.scheduled_for or '' }}" style="width:150px">
+        <button class="btn small" type="submit">Set</button>
+      </form>
+    </td>
+    <td class="row">
+      {% if p.status == 'draft' %}
+        <form class="inline" method="post" action="/posts/{{ p.id }}/render">
+          <button class="btn small primary" type="submit">Render</button></form>
+      {% endif %}
+      {% if p.status in ('rendered','approved') %}
+        <form class="inline" method="post" action="/posts/{{ p.id }}/export">
+          <button class="btn small green" type="submit">Export</button></form>
+        <a class="btn small" href="/media/{{ p.id }}/video.mp4" target="_blank">Video</a>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

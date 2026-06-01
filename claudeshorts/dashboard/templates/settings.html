@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block body %}
+<h1>Settings</h1>
+
+<div class="card">
+  <h2 style="margin-top:0">Anthropic account</h2>
+  <p>Active backend: <span class="badge">{{ status.backend }}</span>
+    {% if status.ready %}<span class="badge ok">ready</span>
+    {% else %}<span class="badge error">not ready</span>{% endif %}</p>
+
+  <div class="grid2">
+    <div>
+      <h3><span class="dot {{ 'on' if status.cli_path and status.cli_logged_in else 'off' }}"></span>
+        Subscription (Claude CLI)</h3>
+      <p class="muted">Runs under your Claude Pro/Max plan — no API key, cheapest path.</p>
+      <p>CLI on PATH: <b>{{ status.cli_path or 'not found' }}</b><br>
+         Logged in: <b>{{ 'yes' if status.cli_logged_in else 'unknown' }}</b></p>
+      {% if not status.cli_path %}
+        <p class="muted">Install Claude Code, then run <code>claude login</code> in a terminal.</p>
+      {% elif not status.cli_logged_in %}
+        <p class="muted">Run <code>claude login</code> in a terminal on this machine, then reload.</p>
+      {% endif %}
+      <form method="post" action="/settings/backend">
+        <input type="hidden" name="backend" value="claude_cli">
+        <button class="btn" type="submit">Use subscription backend</button>
+      </form>
+    </div>
+
+    <div>
+      <h3><span class="dot {{ 'on' if status.api_key_present else 'off' }}"></span>
+        API key</h3>
+      <p class="muted">Direct Anthropic API (metered). Stored in <code>.env</code> (gitignored).</p>
+      <p>Key present: <b>{{ 'yes' if status.api_key_present else 'no' }}</b></p>
+      <form method="post" action="/settings/api-key">
+        <input type="text" name="api_key" placeholder="sk-ant-…" autocomplete="off">
+        <div class="row" style="margin-top:8px">
+          <button class="btn green" type="submit">Save key &amp; use API</button>
+        </div>
+      </form>
+      {% if status.api_key_present %}
+      <form method="post" action="/settings/api-key/clear" style="margin-top:8px">
+        <button class="btn small red" type="submit">Remove key</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Pipeline</h2>
+  <p class="muted">Saving here rewrites <code>config/settings.yaml</code> and drops
+    its inline comments. Editing the file by hand still works.</p>
+  <form method="post" action="/settings/general">
+    <div class="grid2">
+      <div class="field"><label>Posts per day</label>
+        <input type="number" name="posts_per_day" min="1" value="{{ posts_per_day }}"></div>
+      <div class="field"><label>Audio mode</label>
+        <select name="audio_mode">
+          {% for m in ['silent','music','tts'] %}
+          <option value="{{ m }}" {{ 'selected' if audio_mode==m }}>{{ m }}</option>
+          {% endfor %}
+        </select></div>
+    </div>
+    <div class="field"><label>Platforms (comma-separated)</label>
+      <input type="text" name="platforms" value="{{ platforms|join(', ') }}"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn green" type="submit">Save pipeline settings</button>
+    </div>
+  </form>
+  <p class="muted" style="margin-top:12px">Models — CLI: <code>{{ cli_model }}</code>,
+    API: <code>{{ api_model }}</code> (edit in settings.yaml).</p>
+</div>
+{% endblock %}

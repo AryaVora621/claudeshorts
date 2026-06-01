@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Review{% endblock %}
+{% block body %}
+<h1>Review queue ({{ posts|length }})</h1>
+<p class="sub">Rendered posts awaiting a human decision. Approve exports to
+  <code>publish/</code> (or holds until its scheduled date); reject marks it done.</p>
+
+{% if not posts %}
+  <p class="empty">Nothing awaiting review. Render some posts first
+    (<a href="/posts">Posts</a> or <a href="/">run the pipeline</a>).</p>
+{% endif %}
+
+{% for p in posts %}
+<div class="card post">
+  <div>
+    <video controls preload="metadata" poster="/media/{{ p.id }}/thumb.png">
+      <source src="/media/{{ p.id }}/video.mp4" type="video/mp4"></video>
+  </div>
+  <div>
+    <p class="title">{{ p.title }}</p>
+    <p class="muted">
+      {% set t = p.theme or {} %}
+      <span class="swatch" style="background:{{ t.get('primary','#000') }}"></span>
+      <span class="swatch" style="background:{{ t.get('secondary','#000') }}"></span>
+      <span class="swatch" style="background:{{ t.get('accent','#000') }}"></span>
+      {{ t.get('subject','') }} · {{ t.get('mood','') }}
+      {% if p.scheduled_for %}· <span class="badge">scheduled {{ p.scheduled_for }}</span>{% endif %}
+    </p>
+    {% for platform, text in caps[p.id].items() %}
+      <div class="caps"><b>{{ platform.capitalize() }}</b>
+{{ text }}</div>
+    {% endfor %}
+    <div class="row" style="margin-top:10px">
+      <form class="inline" method="post" action="/posts/{{ p.id }}/approve">
+        <button class="btn green" type="submit">Approve &amp; export</button></form>
+      <form class="inline" method="post" action="/posts/{{ p.id }}/reject">
+        <input type="text" name="note" placeholder="reason (optional)" style="width:200px">
+        <button class="btn red" type="submit">Reject</button></form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

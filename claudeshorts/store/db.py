@@ -72,6 +72,15 @@ CREATE TABLE IF NOT EXISTS runs (
     finished_at   TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_runs_date ON runs(run_date);
+
+-- pins: items the operator manually flagged (via the dashboard) to be turned
+-- into a post. Selection force-includes these ahead of the auto-ranked
+-- candidates; the pin is cleared once a post is generated from the item.
+CREATE TABLE IF NOT EXISTS pins (
+    item_id    INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+    note       TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 
@@ -88,6 +97,9 @@ def connect(db_path: Path | None = None) -> sqlite3.Connection:
 # additive ALTERs so existing databases pick them up without a rebuild.
 _MIGRATIONS = [
     ("posts", "theme_json", "TEXT"),
+    # scheduled_for: optional target publish date (YYYY-MM-DD) for the future-
+    # posts queue. NULL = publish on approval; set = held until that date.
+    ("posts", "scheduled_for", "TEXT"),
 ]
 
 

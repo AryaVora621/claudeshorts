@@ -16,6 +16,14 @@ def latest_run_for_date(conn: sqlite3.Connection, run_date: str) -> dict[str, An
     return dict(row) if row else None
 
 
+def recent_runs(conn: sqlite3.Connection, limit: int = 50) -> list[dict[str, Any]]:
+    """Most recent pipeline runs, newest first (for the dashboard history)."""
+    rows = conn.execute(
+        "SELECT * FROM runs ORDER BY id DESC LIMIT ?", (int(limit),)
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def start_run(conn: sqlite3.Connection, run_date: str) -> int:
     cur = conn.execute(
         "INSERT INTO runs (run_date, status) VALUES (?, 'running')", (run_date,)

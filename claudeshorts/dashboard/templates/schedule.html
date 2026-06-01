@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Schedule{% endblock %}
+{% block body %}
+<h1>Schedule</h1>
+<p class="sub">The future-posts queue. Approved posts with a date publish
+  automatically on the next daily run once that date arrives ({{ today }} today).
+  Posts not yet approved wait in review until you approve them.</p>
+
+{% if due %}
+<div class="flash ok">{{ due|length }} approved post(s) are due now — they'll
+  export on the next run, or publish any immediately below.</div>
+{% endif %}
+
+{% if not posts %}
+  <p class="empty">No posts scheduled. Set a date on the
+    <a href="/posts">Posts</a> page or when reviewing.</p>
+{% endif %}
+
+<table>
+  <tr><th>#</th><th>Title</th><th>Status</th><th>Publish on</th><th>Actions</th></tr>
+  {% for p in posts %}
+  <tr>
+    <td>{{ p.id }}</td>
+    <td>{{ p.title or '(untitled)' }}</td>
+    <td><span class="badge {{ p.status }}">{{ p.status }}</span></td>
+    <td>
+      <form method="post" action="/posts/{{ p.id }}/schedule" class="row">
+        <input type="date" name="scheduled_for" value="{{ p.scheduled_for or '' }}" style="width:150px">
+        <button class="btn small" type="submit">Update</button>
+      </form>
+    </td>
+    <td class="row">
+      <form class="inline" method="post" action="/posts/{{ p.id }}/publish-now">
+        <button class="btn small green" type="submit">Publish now</button></form>
+      <form class="inline" method="post" action="/posts/{{ p.id }}/schedule">
+        <input type="hidden" name="scheduled_for" value="">
+        <button class="btn small" type="submit">Clear</button></form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

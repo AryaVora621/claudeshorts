@@ -102,6 +102,16 @@ def run_pipeline(
                     log.error("render failed for post %d: %s", pid, exc)
         summary["rendered"] = rendered
 
+        # Drain the future-posts queue: export any approved post now due.
+        try:
+            from ..publish import publish_due_posts
+            published = publish_due_posts()
+            if published:
+                log.info("published %d scheduled post(s): %s", len(published), published)
+            summary["published"] = published
+        except Exception as exc:  # scheduling is best-effort, never fail the run
+            log.error("scheduled publish failed: %s", exc)
+
         with connect() as conn:
             finish_run(conn, run_id, status="ok",
                        posts_created=len(results), detail=str(summary))

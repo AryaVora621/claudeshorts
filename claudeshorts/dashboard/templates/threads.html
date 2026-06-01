@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Threads{% endblock %}
+{% block body %}
+<h1>Threads ({{ threads|length }})</h1>
+<p class="sub">Content memory — ongoing storylines the pipeline tracks so it can
+  build follow-ups instead of repeating itself.</p>
+
+{% if not threads %}<p class="empty">No threads yet.</p>{% endif %}
+
+{% for th in threads %}
+<div class="card">
+  <p class="title">{{ th.title }}
+    <span class="badge {{ th.status }}">{{ th.status }}</span></p>
+  <p class="muted"><code>{{ th.slug }}</code> · updated {{ (th.last_updated or '')[:16] }}</p>
+  {% if th.summary %}<p>{{ th.summary }}</p>{% endif %}
+  {% if th.posts %}
+  <table style="margin-top:6px">
+    <tr><th>Post</th><th>Title</th><th>Status</th><th>Created</th></tr>
+    {% for p in th.posts %}
+    <tr>
+      <td>#{{ p.id }}</td>
+      <td>{{ p.title or '(untitled)' }}</td>
+      <td><span class="badge {{ p.status }}">{{ p.status }}</span></td>
+      <td class="muted">{{ (p.created_at or '')[:16] }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

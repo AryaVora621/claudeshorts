@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block body %}
+<h1>Overview</h1>
+<p class="sub">Generation backend: <span class="badge">{{ backend }}</span>
+  · <a href="/settings">connect / change</a></p>
+
+<div class="tiles">
+  <div class="tile"><div class="n">{{ n_items }}</div><div class="k">Items</div></div>
+  <div class="tile"><div class="n">{{ counts.get('draft', 0) }}</div><div class="k">Drafts</div></div>
+  <div class="tile"><div class="n">{{ counts.get('rendered', 0) }}</div><div class="k">In review</div></div>
+  <div class="tile"><div class="n">{{ counts.get('approved', 0) }}</div><div class="k">Approved</div></div>
+  <div class="tile"><div class="n">{{ counts.get('exported', 0) }}</div><div class="k">Exported</div></div>
+  <div class="tile"><div class="n">{{ n_pinned }}</div><div class="k">Pinned</div></div>
+  <div class="tile"><div class="n">{{ n_scheduled }}</div><div class="k">Scheduled</div></div>
+</div>
+
+<h2>Run the pipeline</h2>
+<div class="row">
+  <form class="inline" method="post" action="/actions/run">
+    <button class="btn primary" type="submit">▶ Run daily pipeline</button></form>
+  <form class="inline" method="post" action="/actions/ingest">
+    <button class="btn" type="submit">Ingest news</button></form>
+  <form class="inline" method="post" action="/actions/generate">
+    <button class="btn" type="submit">Generate posts</button></form>
+  <a class="btn" href="/review">Open review queue →</a>
+</div>
+<p class="muted" style="margin-top:10px">The full run ingests, generates, renders,
+  and drains any scheduled posts that are due. Logs stream live.</p>
+
+{% if last_run %}
+<h2>Last run</h2>
+<p>{{ last_run.run_date }} —
+  <span class="badge {{ last_run.status }}">{{ last_run.status }}</span>,
+  {{ last_run.posts_created }} post(s). <a href="/runs">full history →</a></p>
+{% endif %}
+
+{% if recent_jobs %}
+<h2>Recent jobs</h2>
+<table>
+  <tr><th>#</th><th>Job</th><th>Status</th></tr>
+  {% for j in recent_jobs %}
+  <tr>
+    <td><a href="/jobs/{{ j.id }}">{{ j.id }}</a></td>
+    <td>{{ j.name }}</td>
+    <td><span class="badge {{ j.status }}">{{ j.status }}</span></td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}
