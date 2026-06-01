@@ -12,6 +12,65 @@ Content memory (threads) drives dedupe + follow-ups; per-post themes match the
 news subject. Only Chromium frame-capture and live network steps are verified on
 the desktop (blocked in this container); all logic is verified here.
 
+---
+
+## ▶ Resume here (session handoff — 2026-06-01)
+
+**Latest commit on `main`: `e10fc5d`.** Everything below is pushed to
+`github.com/AryaVora621/claudeshorts`. (Note: `84dfa34` and `e10fc5d` are
+**unsigned** — the managed commit-signing service was returning `400 missing
+source` all session; earlier phases are signed. Re-sign later if desired.)
+
+**Immediate goal: get the dashboard running on the macOS desktop** — the one
+path never runnable in the cloud container (no live network allowlist, no
+Chromium, no ffmpeg here). Everything else is built and unit-verified.
+
+### How to run it locally (desktop)
+```bash
+cd ~/Desktop/claudeshorts      # or wherever the clone lives
+git pull origin main
+rm -rf .venv                   # clear any stale venv
+./start-dashboard.command      # macOS (double-click also works); .bat on Windows
+```
+The launcher finds a Python 3.11+ interpreter, builds `.venv`, installs deps,
+inits the DB, and opens `http://127.0.0.1:8000`.
+
+### Known local gotchas (last debugging session)
+- **Python version**: macOS default `python3` is 3.9; the project needs 3.11+.
+  User installed Python 3.13 — confirm it's on PATH (`which python3.13`). The
+  launcher searches `python3.13/3.12/3.11` and recreates a too-old `.venv`.
+- **Must `git pull` first**: an earlier failure was just running the *old*
+  pre-fix launcher locally (it probed `import claudeshorts`, which succeeds from
+  the repo dir even uninstalled, so it skipped `pip install` → `import typer`
+  crash). Fixed in `e10fc5d` (now probes real deps: typer/fastapi/uvicorn/…).
+- **Rendering needs Node + Chromium + ffmpeg**: `cd renderer && npm install &&
+  npx playwright install chromium`, and install ffmpeg. Dashboard runs without
+  them; only video render/export needs them. Default `audio.mode: silent`.
+- **Generation auth**: default backend `claude_cli` (Claude Pro/Max via the
+  `claude` CLI — run `claude login`). Or set an API key in the dashboard
+  Settings page (saved to `.env`, switches backend to `api`).
+
+### Good first things to do in the next session
+1. Run the launcher on the desktop; fix whatever surfaces on first real run.
+2. `claudeshorts run` (or the dashboard “Run daily pipeline”) end-to-end with
+   live feeds + a real Chromium render; eyeball a produced MP4.
+3. Tune the slideshow template (`renderer/templates/slideshow.html`) visually.
+4. Wire humanlike TTS (`audio.tts.command`: Piper or edge-tts) + add music to
+   `assets/music/`.
+5. Later: real YouTube Data API uploader from the `publish/<platform>/` seam.
+
+### Orientation for a fresh Claude session
+- Read `CLAUDE.md` (conventions) then this file. Pipeline: `ingest → select →
+  generate → render → review → publish`, orchestrated by
+  `claudeshorts/orchestrate`, fronted by the `claudeshorts/dashboard` console.
+- CLI entrypoint: `python -m claudeshorts.cli <cmd>` (`init-db`, `ingest`,
+  `select`, `generate`, `render`, `serve`, `run`, `version`).
+- State in SQLite `data/app.db` (gitignored): `items`, `posts`, `threads`,
+  `post_threads`, `runs`, `pins`. Runtime dirs `data/ review/ publish/ renders/`
+  are gitignored and regenerated.
+
+---
+
 ### Done
 - **Phase 6 — Operator dashboard** (`claudeshorts/dashboard/`)
   - Server-rendered FastAPI console (Jinja2 templates + `static/app.css`), now
