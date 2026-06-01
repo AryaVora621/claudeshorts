@@ -106,12 +106,14 @@ def render_cmd(post_id: int = typer.Argument(..., help="posts.id to render.")) -
     except RuntimeError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1)
+    from .review import assemble_review
+
+    review_dir = assemble_review(post, result)
     typer.echo(
-        f"rendered post #{post_id}: {result['video']} "
-        f"({result['frames']} frames, {result['duration_ms']}ms, "
-        f"audio={result['audio_mode']})"
+        f"rendered post #{post_id}: {result['frames']} frames, "
+        f"{result['duration_ms']}ms, audio={result['audio_mode']}"
     )
-    typer.echo(f"thumbnail: {result['thumb']}")
+    typer.echo(f"review folder: {review_dir}")
 
 
 @app.command("serve")
@@ -120,7 +122,13 @@ def serve_cmd(
     port: int = typer.Option(8000),
 ) -> None:
     """Run the local review dashboard. [Phase 4]"""
-    raise typer.Exit(_not_yet("serve", "Phase 4"))
+    import uvicorn
+
+    from .review import create_app
+
+    init_db()
+    typer.echo(f"Review dashboard on http://{host}:{port}")
+    uvicorn.run(create_app(), host=host, port=port)
 
 
 @app.command("run")

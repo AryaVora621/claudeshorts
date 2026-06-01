@@ -27,6 +27,18 @@ def count_items(conn: sqlite3.Connection) -> int:
     return conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
 
 
+def get_items(conn: sqlite3.Connection, ids: list[int]) -> list[dict[str, Any]]:
+    """Fetch items by id, preserving the given order."""
+    if not ids:
+        return []
+    placeholders = ",".join("?" * len(ids))
+    rows = conn.execute(
+        f"SELECT * FROM items WHERE id IN ({placeholders})", list(ids)
+    ).fetchall()
+    by_id = {r["id"]: dict(r) for r in rows}
+    return [by_id[i] for i in ids if i in by_id]
+
+
 def recent_items(conn: sqlite3.Connection, days: int) -> list[dict[str, Any]]:
     """Items fetched within the last `days`, newest first (for selection)."""
     rows = conn.execute(

@@ -3,7 +3,28 @@
 > Living project memory. Update at the end of every phase so a fresh session
 > resumes without re-deriving context. See the master plan for full detail.
 
-## Status: Phase 3 complete — Node renderer (HTML slideshow -> MP4)
+## Status: Phase 4 complete — review queue + assisted publish
+
+### Done
+- **Phase 4 — Review queue + assisted publish**
+  - `review/queue.py` — `assemble_review()`: on render, build
+    `review/<date>/post_<id>/` (video.mp4, thumb.png, captions.md, manifest.json)
+    and mark the post `rendered`. `pending_reviews()` lists rendered posts.
+  - `review/captions.py` — per-platform caption/hashtag formatting (`captions.md`
+    for review; `PLATFORM_CAPTION` reused by the exporter).
+  - `review/app.py` — FastAPI dashboard (`cli serve`): lists pending posts with
+    inline video preview + theme swatches + captions; Approve/Reject. Approve ->
+    export; Reject -> status `rejected` (+note). Localhost only. Form body parsed
+    directly (no python-multipart dep).
+  - `publish/exporter.py` — `export_post()`: copy MP4 + per-platform caption.txt
+    into `publish/<platform>/<date>/post_<id>/`; mark `exported` + stamp
+    `published_at` (content memory).
+  - `cli render` now also assembles the review folder; `cli serve` runs the app.
+  - Store: `get_items`, `posts_by_status` helpers.
+  - **Verified** via FastAPI TestClient: assemble, dashboard list, media serving,
+    approve -> 3-platform export (+status/published_at), reject -> status+note.
+
+## Status (history) — Phase 3 complete — Node renderer (HTML slideshow -> MP4)
 
 ### Done
 - **Phase 3 — Node renderer**
@@ -87,14 +108,13 @@
   - `.env.example`, `.gitignore` updated for `data/ review/ publish/`.
   - Project memory: this file + `CLAUDE.md`.
 
-### Next: Phase 4 — Review queue + assisted publish
-- On render, assemble `review/<date>/<post-id>/` (video.mp4, thumb.png,
-  captions.md per platform, manifest.json); set post status `rendered`.
-- `claudeshorts/review/` FastAPI dashboard (`cli serve`): list pending posts,
-  inline video preview, Approve/Reject.
-- `claudeshorts/publish/`: on approve, export MP4 + per-platform captions to
-  `publish/<platform>/<date>/`; mark `exported`; stamp `published_at`.
-- Verify: serve -> approve -> files land in publish/<platform>/.
+### Next: Phase 5 — Orchestration & daily scheduling
+- `orchestrate/`: idempotent daily runner `ingest -> select -> generate ->
+  render -> queue` (one run/day guard, never reuse posted items, retries +
+  logging). Wire `cli run` (honor posts_per_day).
+- systemd user timer (+ cron fallback) for the desktop; document SSH/.env setup.
+- Verify: `cli run` yields 2-3 rendered posts in the queue, no dupes across runs;
+  developing-story rerun produces a follow-up bound to the thread.
 
 ### Setup notes for the desktop
 - Renderer needs a browser: `cd renderer && npm install && npx playwright install chromium`.

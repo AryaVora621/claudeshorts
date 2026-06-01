@@ -51,6 +51,13 @@ def recent_posts(conn: sqlite3.Connection, days: int) -> list[dict[str, Any]]:
     return [_row_to_post(r) for r in rows]
 
 
+def posts_by_status(conn: sqlite3.Connection, status: str) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT * FROM posts WHERE status = ? ORDER BY created_at DESC", (status,)
+    ).fetchall()
+    return [_row_to_post(r) for r in rows]
+
+
 def used_item_ids(conn: sqlite3.Connection, days: int) -> set[int]:
     """item ids already consumed by recent posts (for selection dedupe)."""
     ids: set[int] = set()
