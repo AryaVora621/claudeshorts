@@ -18,10 +18,18 @@ video:
 
 # Claude generation (Phase 2).
 model:
-  name: claude-sonnet-4-6
+  # backend: how we call Claude.
+  #   claude_cli -> shells out to the `claude` CLI under your Claude Pro/Max
+  #                 subscription (no metered API key; cheapest). Requires Claude
+  #                 Code installed + `claude login` on the host.
+  #   api        -> direct Anthropic API (needs ANTHROPIC_API_KEY), forced tool
+  #                 use + prompt caching.
+  backend: claude_cli
+  cli_model: sonnet            # alias passed to `claude --model` (claude_cli)
+  name: claude-sonnet-4-6      # model id for the api backend
   max_tokens: 4096
-  # Static system-prompt content is prompt-cached; only per-item news varies.
-  prompt_cache: true
+  prompt_cache: true           # api backend only
+  timeout_seconds: 180         # per-generation CLI timeout
 
 # Ingestion window (Phase 1): ignore items older than this many hours.
 ingest:

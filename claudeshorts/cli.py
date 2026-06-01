@@ -9,10 +9,14 @@ commands are stubs that later phases fill in:
 from __future__ import annotations
 
 import typer
+from dotenv import load_dotenv
 
 from . import __version__
 from .config import DB_PATH
 from .store import init_db
+
+# Load .env (e.g. ANTHROPIC_API_KEY) before any command runs.
+load_dotenv()
 
 app = typer.Typer(
     help="Automated tech/AI news -> short-form video/slideshow pipeline.",
@@ -51,15 +55,38 @@ def ingest_cmd(
 
 
 @app.command("select")
-def select_cmd() -> None:
+def select_cmd(
+    limit: int = typer.Option(None, help="Max topics to select (default: posts_per_day)."),
+) -> None:
     """Pick the day's topics, deduping and detecting follow-ups. [Phase 2]"""
-    raise typer.Exit(_not_yet("select", "Phase 2"))
+    from .generate import select_topics
+
+    init_db()
+    topics = select_topics(limit=limit)
+    if not topics:
+        typer.echo("No fresh, un-posted topics available.")
+        return
+    for t in topics:
+        item = t["item"]
+        tag = " [follow-up]" if t["follow_up_thread"] else ""
+        typer.echo(f"[{t['score']:.2f}] ({item['source']}) {item['title']}{tag}")
 
 
 @app.command("generate")
-def generate_cmd() -> None:
+def generate_cmd(
+    limit: int = typer.Option(None, help="Max posts to generate (default: posts_per_day)."),
+) -> None:
     """Turn selected topics into slides + captions via Claude. [Phase 2]"""
-    raise typer.Exit(_not_yet("generate", "Phase 2"))
+    from .generate import run_generate
+
+    init_db()
+    results = run_generate(limit=limit)
+    if not results:
+        typer.echo("Nothing to generate (no fresh topics).")
+        return
+    for r in results:
+        tag = " [follow-up]" if r["follow_up"] else ""
+        typer.echo(f"post #{r['post_id']} ({r['thread_slug']}): {r['title']}{tag}")
 
 
 @app.command("render")

@@ -25,3 +25,13 @@ def insert_item(conn: sqlite3.Connection, item: dict[str, Any]) -> bool:
 def count_items(conn: sqlite3.Connection) -> int:
     """Total rows currently in `items`."""
     return conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+
+
+def recent_items(conn: sqlite3.Connection, days: int) -> list[dict[str, Any]]:
+    """Items fetched within the last `days`, newest first (for selection)."""
+    rows = conn.execute(
+        "SELECT * FROM items WHERE fetched_at >= datetime('now', ?) "
+        "ORDER BY COALESCE(published_at, fetched_at) DESC",
+        (f"-{int(days)} days",),
+    ).fetchall()
+    return [dict(r) for r in rows]

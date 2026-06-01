@@ -20,6 +20,10 @@ for YouTube, TikTok, and Instagram. The social posts *are* the newsletter.
   `config/sources.yaml`; access via `claudeshorts.config`.
 - Runtime dirs `data/ review/ publish/ renders/` are gitignored; create them via
   `config.ensure_dirs()`.
+- Generation runs under the **Claude Pro/Max subscription** by default
+  (`model.backend: claude_cli` shells out to the `claude` CLI — no API key).
+  Host needs Claude Code installed + `claude login`. An `api` backend
+  (`ANTHROPIC_API_KEY`) is available as a fallback.
 - Secrets only in `.env` (gitignored); see `.env.example`.
 - CLI is the entrypoint: `python -m claudeshorts.cli <command>` (or the
   `claudeshorts` console script).
