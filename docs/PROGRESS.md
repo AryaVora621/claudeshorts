@@ -16,14 +16,42 @@ the desktop (blocked in this container); all logic is verified here.
 
 ## ▶ Resume here (session handoff — 2026-06-01)
 
-**Latest commit on `main`: `e10fc5d`.** Everything below is pushed to
-`github.com/AryaVora621/claudeshorts`. (Note: `84dfa34` and `e10fc5d` are
+**Latest commit on `main`: `e10fc5d`.** (Note: `84dfa34` and `e10fc5d` are
 **unsigned** — the managed commit-signing service was returning `400 missing
-source` all session; earlier phases are signed. Re-sign later if desired.)
+source` that session; earlier phases are signed. Re-sign later if desired.)
 
-**Immediate goal: get the dashboard running on the macOS desktop** — the one
-path never runnable in the cloud container (no live network allowlist, no
-Chromium, no ffmpeg here). Everything else is built and unit-verified.
+### ✅ Desktop session (2026-06-01) — full pipeline verified live + 2 real bugs fixed
+
+Ran the whole pipeline on the actual macOS desktop for the first time. Env was
+already provisioned (Python 3.13 venv + deps, Node 24, Playwright **Chromium**,
+**ffmpeg 8.1**, `claude` CLI 2.1.159). Two real bugs surfaced and are fixed
+(both **uncommitted** as of handoff — see "commit decision" below):
+
+1. **Generation was fully broken.** `claude -p --output-format json` in CLI
+   v2.1.159 now returns a **JSON array of stream events** (`[{type:system…},…,
+   {type:result,result:"…"}]`), not the old `{"result":…}` envelope. Patched
+   `generate/generator.py::_result_text` to find the terminal `type==result`
+   event (and raise on `is_error`), with back-compat + assistant-text fallback.
+2. **`review/` and `publish/` Python packages were missing from git.** Phase 4
+   wrote that code into the **top-level `review/` and `publish/` dirs, which are
+   gitignored** — so it was never committed; a fresh clone had only empty
+   runtime dirs. `cli.py`, `dashboard/app.py`, and `orchestrate/runner.py` all
+   imported the ghosts → `ModuleNotFoundError`. **Reconstructed both packages**
+   (`claudeshorts/review/{__init__,queue,captions}.py`,
+   `claudeshorts/publish/{__init__,exporter}.py`) to satisfy every call site.
+
+**Verified live, end to end:** ingest (113 items) → select → generate (3 posts)
+→ render (real Chromium+ffmpeg → valid **1080×1920 H.264** MP4s, 24–28s) →
+`assemble_review` bundle → dashboard (all 8 pages 200 + media serving) →
+approve → per-platform export to `publish/`. Post 1 export + post 2 CLI render
+both confirmed; `compileall` + all import sites clean.
+
+**Known issue (non-fatal):** the two **Reddit** sources now return `403 Blocked`
+(unauthenticated `hot.json` is blocked). One bad source can't kill ingest. Fix
+later via Reddit OAuth or drop them; other sources gave 113 items.
+
+**Commit decision (pending human):** the two fixes above are **uncommitted** on
+`main`. Decide whether to commit (and to `main` vs a branch) + push.
 
 ### How to run it locally (desktop)
 ```bash

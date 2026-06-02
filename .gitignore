@@ -26,14 +26,17 @@ env/
 *.egg-info/
 .pytest_cache/
 
-# Runtime state & artifacts (regenerated, not source)
-data/
-review/
-publish/
+# Runtime state & artifacts (regenerated, not source).
+# NOTE: anchored with a leading slash so these only match the top-level runtime
+# dirs — an unanchored `review/`/`publish/` also matches the source packages
+# claudeshorts/review/ and claudeshorts/publish/ and silently drops them.
+/data/
+/review/
+/publish/
 
 # Media artifacts (large, regenerated)
-output/
-renders/
+/output/
+/renders/
 *.mp4
 *.mov
 *.wav

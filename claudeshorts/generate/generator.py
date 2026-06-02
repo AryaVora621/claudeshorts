@@ -107,13 +107,45 @@ def _run_claude_cli(prompt: str, model: str, timeout: int) -> str:
 
 
 def _result_text(raw: str) -> str:
-    """Pull the assistant text out of `--output-format json` envelope."""
+    """Pull the assistant text out of the `--output-format json` output.
+
+    The CLI emits one of two shapes depending on version:
+    - older: a single envelope ``{"type":"result","result":"..."}``;
+    - Claude Code 2.1+: a JSON array of stream events whose final
+      ``{"type":"result"}`` element carries the text.
+    Falls back to assistant text blocks, then the raw string.
+    """
     try:
         env = json.loads(raw)
     except json.JSONDecodeError:
         return raw
-    if isinstance(env, dict):
-        return env.get("result", raw)
+    events = env if isinstance(env, list) else [env]
+    # Prefer the terminal result event (last one wins).
+    result_event = next(
+        (e for e in reversed(events)
+         if isinstance(e, dict) and e.get("type") == "result"),
+        None,
+    )
+    if result_event is not None:
+        if result_event.get("is_error"):
+            detail = (result_event.get("result")
+                      or result_event.get("api_error_status") or "unknown error")
+            raise RuntimeError(f"claude CLI returned an error result: {detail}")
+        text = result_event.get("result")
+        if isinstance(text, str):
+            return text
+    # Backward-compat: a bare dict envelope with a result string.
+    if isinstance(env, dict) and isinstance(env.get("result"), str):
+        return env["result"]
+    # Fallback: concatenate assistant text blocks from a stream array.
+    texts = [
+        block.get("text", "")
+        for e in events if isinstance(e, dict) and e.get("type") == "assistant"
+        for block in (e.get("message", {}).get("content") or [])
+        if isinstance(block, dict) and block.get("type") == "text"
+    ]
+    if texts:
+        return "\n".join(texts)
     return raw
 
 
