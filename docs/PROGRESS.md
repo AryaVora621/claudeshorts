@@ -16,6 +16,16 @@ the desktop (blocked in this container); all logic is verified here.
 
 ## ▶ Resume here (session handoff — 2026-06-01)
 
+### Batch generation up to 20 (2026-06-02)
+
+`generate/runner.py::run_generate` now clamps to `MAX_BATCH=20` and generates
+each post independently: a single bad item is logged and skipped instead of
+aborting the whole batch. It takes an optional `on_progress` hook and logs per
+post (so the dashboard SSE stream shows progress). `cli generate` draws a live
+`rich` progress bar (spinner + current post + overall M/N + elapsed) and prints
+`generated=X failed=Y`. Return type unchanged (successes list), so the cli /
+orchestrate / dashboard callers needed no edits.
+
 ### Wider topics + humanization (2026-06-02)
 
 `config/sources.yaml` now lists 19 live RSS feeds spanning general tech, AI /

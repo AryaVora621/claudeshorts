@@ -45,12 +45,21 @@ Agent: Claude (Opus 4.8). Mode: Debugger -> Builder.
      voice; NEVER em dashes + AI-slop ban, as a writing instruction (NOT a hard
      filter, per user). Verified: post #5 valid, 0 em dashes, reads human.
 
-## Next (per user)
-- **Batch generation (up to 20)**: clamp 1-20, per-post error isolation (skip a
-  bad gen, keep going), `rich` progress bar (per-post + total). Decisions
-  already gathered (sequential + resilient + live progress).
-- Known gap for big batches: near-duplicate dedup is weak across outlets (same
-  story from 3 sites can all rank top). Revisit when batch lands.
+6. **Batch generation (up to 20)** (committed on branch).
+   - `generate/runner.py::run_generate` — clamp to MAX_BATCH=20; each post
+     generated independently inside the loop, wrapped in try/except so a bad
+     item is logged + skipped (batch continues); optional `on_progress` hook +
+     per-post logging (streams to dashboard SSE). Still returns the successes
+     list, so cli/orchestrate/dashboard callers are unchanged.
+   - `cli.py::generate` — live `rich` progress bar (spinner + current post +
+     overall M/N + elapsed); prints `generated=X failed=Y` + the new post list.
+   - Verified: mock failure isolation (3 attempted -> 2 created, no abort) and a
+     real `--limit 2` run (posts #8, #9, both follow-ups, bar rendered).
+
+## Next (per user / backlog)
+- Tighter near-duplicate dedup across outlets (token overlap misses same story
+  from different sites) — matters most for 20-post batches.
+- Optional: dashboard carousel preview; parallelize batch generation.
 
 ## Verification commands
 - `.venv/bin/python -m claudeshorts.cli ingest --limit 10`  (RSS now works)

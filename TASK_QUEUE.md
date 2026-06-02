@@ -1,16 +1,22 @@
 # Task Queue
 
 ## Open
-- Batch generation (up to 20): clamp 1-20 + per-post error isolation + a `rich`
-  progress bar (per-post + total). NEXT.
 - Better near-duplicate dedup for big batches: token-overlap dedup misses the
   same story across outlets (e.g. 3 "Anthropic IPO" items ranked top). Matters
   once batches are 20. Consider tighter/semantic dedup.
+- Optional: surface the carousel deck in the dashboard review page (preview).
+- Optional: parallelize batch generation (run a few claude CLI calls at once).
 
 ## In-Progress
 - None.
 
 ## Done
+- Batch generation (up to 20): `run_generate` clamps to 1-20, generates each
+  post independently (one failure is logged + skipped, batch continues), and
+  emits per-item progress. `cli generate` draws a live `rich` bar (spinner +
+  current post + overall M/N + elapsed); per-post logging streams to the
+  dashboard too. Verified: mock failure isolation (3 attempted, 2 created) +
+  real --limit 2 run (both follow-ups, bar rendered).
 - Wider topic range: expanded sources.yaml to 19 working feeds across general
   tech, AI/big-tech (incl. Nvidia/Google blogs), security (Krebs, Bleeping,
   TheHackerNews), hardware/chips (Tom's, IEEE, Register), and consumer/gaming

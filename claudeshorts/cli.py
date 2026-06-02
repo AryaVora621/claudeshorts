@@ -74,19 +74,52 @@ def select_cmd(
 
 @app.command("generate")
 def generate_cmd(
-    limit: int = typer.Option(None, help="Max posts to generate (default: posts_per_day)."),
+    limit: int = typer.Option(None, help="Max posts to generate, 1-20 (default: posts_per_day)."),
 ) -> None:
-    """Turn selected topics into slides + captions via Claude. [Phase 2]"""
+    """Turn selected topics into slides + captions via Claude (batch up to 20). [Phase 2]"""
+    from rich.markup import escape
+    from rich.progress import (
+        BarColumn, MofNCompleteColumn, Progress, SpinnerColumn,
+        TextColumn, TimeElapsedColumn,
+    )
+
     from .generate import run_generate
 
     init_db()
-    results = run_generate(limit=limit)
-    if not results:
+    tally = {"fail": 0}
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+    ) as progress:
+        task = progress.add_task("Selecting topics…", total=None)
+
+        def cb(event: str, idx: int, total: int, title: str, error) -> None:
+            if progress.tasks[task].total is None:
+                progress.update(task, total=total)
+            short = escape(title if len(title) <= 47 else title[:46] + "…")
+            if event == "start":
+                progress.update(task, description=f"[{idx}/{total}] {short}")
+            elif event == "ok":
+                progress.update(task, description=f"[green]✓[/] {short}", advance=1)
+            elif event == "fail":
+                tally["fail"] += 1
+                progress.update(task, description=f"[red]✗[/] {short}", advance=1)
+
+        results = run_generate(limit=limit, on_progress=cb)
+        if progress.tasks[task].total is None:  # no topics -> no callbacks fired
+            progress.update(task, total=0)
+
+    if not results and not tally["fail"]:
         typer.echo("Nothing to generate (no fresh topics).")
         return
+    typer.echo(f"\ngenerated={len(results)} failed={tally['fail']}")
     for r in results:
         tag = " [follow-up]" if r["follow_up"] else ""
-        typer.echo(f"post #{r['post_id']} ({r['thread_slug']}): {r['title']}{tag}")
+        typer.echo(f"  post #{r['post_id']} ({r['thread_slug']}): {r['title']}{tag}")
 
 
 @app.command("render")
