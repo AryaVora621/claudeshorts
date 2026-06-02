@@ -62,6 +62,27 @@ def _recency_bonus(item: dict, window_days: int) -> float:
     return max(0.0, 1.0 - age_h / window_h)
 
 
+def _flatten_keywords(groups: list[str] | None) -> set[str]:
+    """Flatten config keyword groups (comma-grouped strings) into a token set."""
+    out: set[str] = set()
+    for group in groups or []:
+        out.update(_TOKEN_RE.findall(str(group).lower()))
+    return out
+
+
+def _buzz_score(
+    item: dict, entities: set[str], actions: set[str],
+    entity_bonus: float, action_bonus: float, max_hits: int,
+) -> float:
+    """Virality heuristic: reward titles/summaries naming hot entities and the
+    kinds of events that tend to spread. Each list is capped so keyword-stuffed
+    titles can't run away."""
+    words = set(_TOKEN_RE.findall(f"{item.get('title','')} {item.get('summary','')}".lower()))
+    e = min(len(words & entities), max_hits)
+    a = min(len(words & actions), max_hits)
+    return entity_bonus * e + action_bonus * a
+
+
 def _match_thread(item: dict, threads: list[dict]) -> dict | None:
     item_tokens = _tokens(item["title"]) | _tokens(item.get("summary"))
     best: dict | None = None
@@ -81,8 +102,16 @@ def select_topics(
     """
     cfg = settings()
     limit = limit or cfg.get("posts_per_day", 3)
-    lookback = lookback_days or cfg.get("select", {}).get("lookback_days", 14)
+    select_cfg = cfg.get("select", {})
+    lookback = lookback_days or select_cfg.get("lookback_days", 14)
     weights = _source_weights()
+
+    interest = select_cfg.get("interest", {})
+    entities = _flatten_keywords(interest.get("entities"))
+    actions = _flatten_keywords(interest.get("actions"))
+    entity_bonus = float(interest.get("entity_bonus", 0.0))
+    action_bonus = float(interest.get("action_bonus", 0.0))
+    max_hits = int(interest.get("max_hits", 2))
 
     with connect() as conn:
         used = used_item_ids(conn, lookback)
@@ -112,7 +141,11 @@ def select_topics(
     scored: list[tuple[float, dict]] = []
     for it in candidates:
         weight = weights.get(it["source"], 1.0)
-        score = weight + _recency_bonus(it, lookback)
+        score = (
+            weight
+            + _recency_bonus(it, lookback)
+            + _buzz_score(it, entities, actions, entity_bonus, action_bonus, max_hits)
+        )
         scored.append((score, it))
     scored.sort(key=lambda pair: pair[0], reverse=True)
 

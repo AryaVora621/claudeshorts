@@ -1,8 +1,11 @@
-# News sources for the tech/AI niche. Each source has a kind, an identifier,
-# and a weight used by the selection step (higher = preferred when ranking).
+# News sources for the tech niche. Each source has a kind, an identifier, and a
+# weight used by the selection step (higher = preferred when ranking). The goal
+# is a WIDE range of tech: AI/ML, big-tech companies, security, hardware/chips,
+# and consumer gadgets/gaming. Selection further favors high-interest ("viral")
+# stories via the select.interest buzz scoring in settings.yaml.
 
 sources:
-  # --- RSS feeds (kind: rss, url) ---
+  # --- General tech / startups (RSS) ---
   - name: techcrunch
     kind: rss
     url: https://techcrunch.com/feed/
@@ -18,29 +21,99 @@ sources:
     url: https://feeds.arstechnica.com/arstechnica/index
     weight: 1.1
 
+  - name: wired
+    kind: rss
+    url: https://www.wired.com/feed/rss
+    weight: 1.0
+
+  # --- AI / ML: research + industry + big-company coverage ---
+  - name: venturebeat_ai
+    kind: rss
+    url: https://venturebeat.com/category/ai/feed/
+    weight: 1.1
+
+  - name: mit_tech_review
+    kind: rss
+    url: https://www.technologyreview.com/feed/
+    weight: 1.0
+
   - name: arxiv_cs_ai
     kind: rss
     url: http://export.arxiv.org/rss/cs.AI
-    weight: 0.9
+    weight: 0.8
 
   - name: arxiv_cs_lg
     kind: rss
     url: http://export.arxiv.org/rss/cs.LG
+    weight: 0.8
+
+  - name: nvidia_blog          # first-party; promotional, so weighted lower
+    kind: rss
+    url: https://blogs.nvidia.com/feed/
+    weight: 0.8
+
+  - name: google_keyword       # Google's official blog
+    kind: rss
+    url: https://blog.google/rss/
+    weight: 0.8
+
+  # --- Security & privacy ---
+  - name: krebs_on_security
+    kind: rss
+    url: https://krebsonsecurity.com/feed/
+    weight: 1.0
+
+  - name: bleepingcomputer
+    kind: rss
+    url: https://www.bleepingcomputer.com/feed/
+    weight: 1.0
+
+  - name: thehackernews
+    kind: rss
+    url: https://feeds.feedburner.com/TheHackersNews
     weight: 0.9
 
-  # --- Hacker News via Algolia API (kind: hackernews) ---
+  # --- Hardware & chips ---
+  - name: tomshardware
+    kind: rss
+    url: https://www.tomshardware.com/feeds/all
+    weight: 1.0
+
+  - name: ieee_spectrum
+    kind: rss
+    url: https://spectrum.ieee.org/feeds/feed.rss
+    weight: 0.9
+
+  - name: theregister
+    kind: rss
+    url: https://www.theregister.com/headlines.atom
+    weight: 0.9
+
+  # --- Consumer gadgets & gaming ---
+  - name: engadget
+    kind: rss
+    url: https://www.engadget.com/rss.xml
+    weight: 1.0
+
+  - name: polygon            # gaming
+    kind: rss
+    url: https://www.polygon.com/rss/index.xml
+    weight: 0.8
+
+  # --- Hacker News via Algolia API (broad, already-trending signal) ---
   - name: hackernews_front
     kind: hackernews
     query: ""          # empty = front page
-    weight: 1.3
+    weight: 1.2
 
   # --- Reddit JSON listings (kind: reddit, subreddit) ---
-  - name: reddit_machinelearning
-    kind: reddit
-    subreddit: MachineLearning
-    weight: 1.0
-
-  - name: reddit_technology
-    kind: reddit
-    subreddit: technology
-    weight: 0.8
+  # Disabled: unauthenticated hot.json now returns 403 Blocked. Re-enable once
+  # Reddit OAuth is wired into the reddit fetcher.
+  # - name: reddit_machinelearning
+  #   kind: reddit
+  #   subreddit: MachineLearning
+  #   weight: 1.0
+  # - name: reddit_technology
+  #   kind: reddit
+  #   subreddit: technology
+  #   weight: 0.8

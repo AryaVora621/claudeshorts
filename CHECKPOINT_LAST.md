@@ -31,16 +31,26 @@ Agent: Claude (Opus 4.8). Mode: Debugger -> Builder.
    - Verified on post #4: 6 stills at 1080x1920, fully settled (eyeballed
      slide_01 + slide_05), exported to all 3 platform folders.
 
-## Next (deferred behind carousel, per user)
+5. **Wider topics + humanization** (committed on branch).
+   - `config/sources.yaml` — 19 working RSS feeds across general tech, AI/big-
+     tech (+ Nvidia/Google first-party blogs), security (Krebs, BleepingComputer,
+     TheHackerNews), hardware/chips (Tom's, IEEE Spectrum, The Register), and
+     consumer/gaming (Engadget, Wired, Polygon). Live-validated each; dropped
+     dead AnandTech; disabled the 403-ing Reddit feeds (commented, re-enable
+     with OAuth).
+   - `config/settings.yaml` `select.interest` + `select.py` `_buzz_score` —
+     virality-aware ranking: score = source weight + recency + entity/action
+     buzz. Top-20 now spans 7 sources (was 100% Hacker News).
+   - `generate/generator.py` SYSTEM_PROMPT — broadened topic scope; humanized
+     voice; NEVER em dashes + AI-slop ban, as a writing instruction (NOT a hard
+     filter, per user). Verified: post #5 valid, 0 em dashes, reads human.
+
+## Next (per user)
 - **Batch generation (up to 20)**: clamp 1-20, per-post error isolation (skip a
   bad gen, keep going), `rich` progress bar (per-post + total). Decisions
-  already gathered.
-- **Wider topic range**: add sources (security, hardware/chips, consumer/
-  gadgets/gaming, AI/top-companies) + virality-aware "buzz" scoring (favor items
-  naming top entities / hot actions). No per-source hard cap (user wants best-
-  by-virality). Live-check each new feed and drop dead ones.
-- Minor: generated copy still contains em dashes (e.g. post #4 slide 5) — add
-  "no em dashes" to the generation system prompt when doing the topics work.
+  already gathered (sequential + resilient + live progress).
+- Known gap for big batches: near-duplicate dedup is weak across outlets (same
+  story from 3 sites can all rank top). Revisit when batch lands.
 
 ## Verification commands
 - `.venv/bin/python -m claudeshorts.cli ingest --limit 10`  (RSS now works)

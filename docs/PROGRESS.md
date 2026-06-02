@@ -16,6 +16,26 @@ the desktop (blocked in this container); all logic is verified here.
 
 ## ▶ Resume here (session handoff — 2026-06-01)
 
+### Wider topics + humanization (2026-06-02)
+
+`config/sources.yaml` now lists 19 live RSS feeds spanning general tech, AI /
+big-tech (incl. Nvidia + Google first-party blogs), security, hardware/chips,
+and consumer/gaming (each live-validated; dead AnandTech dropped; 403-ing Reddit
+feeds disabled pending OAuth). Selection is virality-aware: `select.interest`
+(settings) drives a `_buzz_score` in `generate/select.py` that boosts items
+naming hot entities/actions, so the top picks span many sources instead of being
+all Hacker News. The generation system prompt was broadened to the full tech
+landscape and humanized (natural voice, no AI-slop, never em dashes) as a
+writing instruction, not a hard filter. NEXT: batch generation (up to 20) with
+per-post error isolation + a progress bar.
+
+### Carousel / swipeable slideshow (2026-06-02)
+
+The renderer now also emits one settled 1080x1920 PNG per slide
+(`slides/slide_NN.png`), carried through `review/queue.py::assemble_review` and
+`publish/exporter.py` into every `publish/<platform>/` folder, so a post can
+ship as an Instagram/TikTok swipe deck as well as the auto-advancing video.
+
 ### Pacing fix (2026-06-02) — reading-time-aware slide holds
 
 Slides used to hold for a fixed `video.seconds_per_slide` (4.0s) no matter how

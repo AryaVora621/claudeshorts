@@ -2,15 +2,23 @@
 
 ## Open
 - Batch generation (up to 20): clamp 1-20 + per-post error isolation + a `rich`
-  progress bar (per-post + total). [deferred behind carousel per user]
-- Wider topic range: add diverse tech RSS sources (security, hardware/chips,
-  consumer/gadgets/gaming, AI/top-companies) + virality-aware "buzz" scoring in
-  selection (today's batches are Hacker-News-dominated). [deferred]
+  progress bar (per-post + total). NEXT.
+- Better near-duplicate dedup for big batches: token-overlap dedup misses the
+  same story across outlets (e.g. 3 "Anthropic IPO" items ranked top). Matters
+  once batches are 20. Consider tighter/semantic dedup.
 
 ## In-Progress
 - None.
 
 ## Done
+- Wider topic range: expanded sources.yaml to 19 working feeds across general
+  tech, AI/big-tech (incl. Nvidia/Google blogs), security (Krebs, Bleeping,
+  TheHackerNews), hardware/chips (Tom's, IEEE, Register), and consumer/gaming
+  (Engadget, Wired, Polygon); dropped dead AnandTech, disabled 403-ing Reddit.
+  Added virality-aware "buzz" scoring (select.interest in settings) so high-
+  interest stories win. Top-20 now spans 7 sources (was all Hacker News).
+  Humanized the generation prompt (natural voice, no em dashes, no AI-slop) via
+  the prompt, not a hard filter. Verified: post #5 has 0 em dashes, reads human.
 - Swipeable slideshow / carousel export: renderer now writes one settled
   1080x1920 PNG per slide (slides/slide_NN.png); assemble_review + exporter
   carry the deck into the review bundle and every publish/<platform>/ folder.

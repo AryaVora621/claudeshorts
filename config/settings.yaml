@@ -71,3 +71,32 @@ ingest:
 # Selection / memory (Phase 2): how far back to look when deduping + detecting follow-ups.
 select:
   lookback_days: 14
+  # Virality-aware ranking: on top of source weight + recency, boost items that
+  # read as high-interest. `entities` = hot names/products; `actions` = the kind
+  # of event that tends to go viral. Each match list is capped (max_hits) so a
+  # title stuffed with keywords can't dominate. Tune freely.
+  interest:
+    entity_bonus: 0.6        # per distinct entity hit (up to max_hits)
+    action_bonus: 0.4        # per distinct action hit (up to max_hits)
+    max_hits: 2
+    entities:
+      - openai, gpt, chatgpt, sora, codex
+      - anthropic, claude
+      - google, gemini, deepmind, android, pixel, waymo
+      - nvidia, blackwell, cuda, rtx
+      - amd, ryzen, radeon
+      - intel, arc
+      - apple, iphone, ipad, macbook, vision
+      - microsoft, copilot, windows, azure
+      - meta, llama, instagram, whatsapp, quest
+      - tesla, spacex, starlink, xai, grok
+      - amazon, aws, alexa
+      - samsung, qualcomm, snapdragon, tsmc, arm
+      - bitcoin, ethereum, crypto
+    actions:
+      - launch, launches, unveils, announces, reveals, releases, debut, ships
+      - raises, funding, valuation, ipo, acquires, acquisition, merger, buys
+      - lawsuit, sues, sued, fined, banned, antitrust, investigation
+      - breach, hack, hacked, exploit, vulnerability, ransomware, leak, leaked
+      - breakthrough, record, fastest, benchmark, outperforms, beats, first
+      - layoffs, shutdown, recall, outage
