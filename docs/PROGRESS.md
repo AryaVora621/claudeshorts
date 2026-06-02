@@ -16,9 +16,10 @@ the desktop (blocked in this container); all logic is verified here.
 
 ## ▶ Resume here (session handoff — 2026-06-01)
 
-**Latest commit on `main`: `e10fc5d`.** (Note: `84dfa34` and `e10fc5d` are
-**unsigned** — the managed commit-signing service was returning `400 missing
-source` that session; earlier phases are signed. Re-sign later if desired.)
+**Latest commit on `main`: `37d7a84`** (the desktop fixes below; pushed).
+(Note: `84dfa34`, `e10fc5d`, and `37d7a84` are **unsigned** — the managed
+commit-signing service was returning `400 missing source`; earlier phases are
+signed. Re-sign later if desired.)
 
 ### ✅ Desktop session (2026-06-01) — full pipeline verified live + 2 real bugs fixed
 
@@ -50,8 +51,11 @@ both confirmed; `compileall` + all import sites clean.
 (unauthenticated `hot.json` is blocked). One bad source can't kill ingest. Fix
 later via Reddit OAuth or drop them; other sources gave 113 items.
 
-**Commit decision (pending human):** the two fixes above are **uncommitted** on
-`main`. Decide whether to commit (and to `main` vs a branch) + push.
+**Committed + pushed** to `main` as `37d7a84` (verified: the rebuilt packages
+are in the pushed tree). Also **anchored the `.gitignore`** runtime-dir patterns
+to repo root (`/review/`, `/publish/`, `/data/`, `/renders/`, `/output/`) — the
+unanchored `review/`/`publish/` patterns were matching `claudeshorts/review|publish/`
+and silently dropping the source, the exact mechanism that lost it originally.
 
 ### How to run it locally (desktop)
 ```bash
