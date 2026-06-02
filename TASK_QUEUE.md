@@ -1,11 +1,15 @@
 # Task Queue
 
 ## Open
-- Better near-duplicate dedup for big batches: token-overlap dedup misses the
-  same story across outlets (e.g. 3 "Anthropic IPO" items ranked top). Matters
-  once batches are 20. Consider tighter/semantic dedup.
+- Test the `feature/carousel-wider-topics` branch on the HOME SERVER (pull,
+  ingest, generate --limit 20, render, eyeball video + carousel), then open a
+  PR / merge to main. (User testing this next.)
+- DEPRIORITIZED — cross-outlet duplicate stories: "some duplicates are fine"
+  (user). Investigation notes in CHECKPOINT_LAST.md (IDF-weighted shared-token
+  approach; RTX-Spark false-merge risk). Revisit only if it becomes annoying.
 - Optional: surface the carousel deck in the dashboard review page (preview).
 - Optional: parallelize batch generation (run a few claude CLI calls at once).
+- Optional: Reddit OAuth so the disabled reddit sources work again.
 
 ## In-Progress
 - None.
