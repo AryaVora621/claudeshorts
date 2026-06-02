@@ -77,8 +77,15 @@ def _get_json(url: str, params: dict[str, Any]) -> dict:
 
 # --- fetchers --------------------------------------------------------------
 def _fetch_rss(source: dict, limit: int) -> list[dict]:
-    # Pass our UA: some feeds reject feedparser's default agent.
-    feed = feedparser.parse(source["url"], agent=USER_AGENT)
+    # Fetch the feed ourselves via httpx (bundles certifi) and parse the bytes,
+    # rather than letting feedparser fetch via urllib — feedparser's urllib path
+    # fails TLS verification on hosts without the system CA bundle (e.g. macOS),
+    # silently yielding 0 entries. Going through httpx also surfaces real network
+    # errors to the runner and reuses our UA / timeout / redirect handling.
+    resp = httpx.get(source["url"], headers={"User-Agent": USER_AGENT},
+                     timeout=_TIMEOUT, follow_redirects=True)
+    resp.raise_for_status()
+    feed = feedparser.parse(resp.content)
     items: list[dict] = []
     for entry in feed.entries[:limit]:
         title = entry.get("title", "").strip()
