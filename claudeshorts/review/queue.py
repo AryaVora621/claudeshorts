@@ -48,6 +48,18 @@ def assemble_review(post: dict[str, Any], result: dict[str, Any]) -> Path:
         if src and Path(src).exists():
             shutil.copy2(src, dest / name)
 
+    # Per-slide stills for the swipeable carousel (Instagram/TikTok). Mirror the
+    # renderer's slides/ folder so the bundle holds both the video and the deck.
+    slide_names: list[str] = []
+    slides = [s for s in (result.get("slides") or []) if s and Path(s).exists()]
+    if slides:
+        slides_dir = dest / "slides"
+        slides_dir.mkdir(parents=True, exist_ok=True)
+        for src in slides:
+            name = Path(src).name
+            shutil.copy2(src, slides_dir / name)
+            slide_names.append(name)
+
     (dest / "captions.md").write_text(captions_markdown(post), encoding="utf-8")
     (dest / "manifest.json").write_text(
         json.dumps(
@@ -59,6 +71,7 @@ def assemble_review(post: dict[str, Any], result: dict[str, Any]) -> Path:
                 "frames": result.get("frames"),
                 "duration_ms": result.get("duration_ms"),
                 "audio_mode": result.get("audio_mode"),
+                "slides": slide_names,
                 "captions": post.get("captions"),
             },
             indent=2,

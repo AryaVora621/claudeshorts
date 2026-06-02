@@ -59,7 +59,6 @@ async function main() {
   const fps = v.fps || 30;
   const width = v.width || 1080;
   const height = v.height || 1920;
-  const defaultSec = v.seconds_per_slide || 4.0;
   const slides = spec.slides || [];
   const audio = spec.audio || { mode: "silent" };
 
@@ -85,10 +84,16 @@ async function main() {
   }
 
   // --- 2. timeline -------------------------------------------------------
-  const perSlide = perSlideDurations(
-    slides.length, defaultSec, narration ? narration.perSlideSec : null,
-    narration ? narration.pad : 0.6,
-  );
+  // Reading-time aware: hold each slide long enough to read its text, bounded
+  // by [seconds_per_slide, max_seconds_per_slide]; TTS narration is never cut.
+  const perSlide = perSlideDurations(slides, {
+    minSeconds: v.seconds_per_slide || 4.0,
+    maxSeconds: v.max_seconds_per_slide || 8.0,
+    wpm: v.reading_speed_wpm || 200,
+    leadSeconds: v.read_lead_seconds ?? 0.8,
+    audioSeconds: narration ? narration.perSlideSec : null,
+    padSeconds: narration ? narration.pad : 0.6,
+  });
   const tl = buildTimeline(perSlide, fps);
   if (narration) {
     narration.clips.forEach((c, i) => { c.startMs = tl.slideStartsMs[i]; });
@@ -108,6 +113,26 @@ async function main() {
       path: join(framesDir, `frame_${String(f + 1).padStart(5, "0")}.png`),
     });
   }
+
+  // --- 3b. per-slide settled stills (swipeable carousel) -----------------
+  // One 1080x1920 PNG per slide at its fully-settled state (headline + every
+  // bullet revealed), so the same post can be published as an Instagram/TikTok
+  // swipe carousel, not just an auto-advancing video. Captured one frame before
+  // each slide's end, which is guaranteed past all entrance animations.
+  const slidesDir = join(outDir, "slides");
+  await rm(slidesDir, { recursive: true, force: true });
+  await mkdir(slidesDir, { recursive: true });
+  const slideStills = [];
+  for (let i = 0; i < slides.length; i++) {
+    const settledMs = Math.max(0, perSlide[i] * 1000 - 1000 / fps);
+    const globalMs = tl.slideStartsMs[i] + settledMs;
+    await page.evaluate(([idx, localMs, gMs]) => window.__render(idx, localMs, gMs),
+      [i, settledMs, globalMs]);
+    const stillPath = join(slidesDir, `slide_${String(i + 1).padStart(2, "0")}.png`);
+    await page.screenshot({ path: stillPath });
+    slideStills.push(stillPath);
+  }
+
   await browser.close();
 
   // --- 4. encode silent video + thumbnail --------------------------------
@@ -140,7 +165,8 @@ async function main() {
   await rm(framesDir, { recursive: true, force: true });
 
   process.stdout.write(JSON.stringify({
-    video: finalPath, thumb, duration_ms: Math.round(tl.totalMs),
+    video: finalPath, thumb, slides: slideStills,
+    duration_ms: Math.round(tl.totalMs),
     frames: tl.totalFrames, audio_mode: narration ? "tts" : audio.mode,
   }) + "\n");
 }

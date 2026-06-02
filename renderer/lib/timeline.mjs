@@ -27,18 +27,43 @@ export function buildTimeline(perSlideSeconds, fps) {
 }
 
 /**
- * Per-slide durations. With TTS we stretch a slide to fit its narration
- * (plus padding); otherwise every slide uses the configured default.
- * @param {number} slideCount
- * @param {number} defaultSeconds
- * @param {number[]|null} audioSeconds  per-slide narration length, or null
- * @param {number} padSeconds
+ * Reading time for one slide's on-screen text (silent mode). Viewers read the
+ * headline plus every bullet, so the hold must cover all of it. `leadSeconds`
+ * accounts for the entrance animation settling before reading really starts.
+ * @param {{headline?:string,bullets?:string[]}} slide
+ * @param {{wpm?:number,leadSeconds?:number}} [opts]
+ * @returns {number} recommended hold in seconds (unclamped)
  */
-export function perSlideDurations(slideCount, defaultSeconds, audioSeconds, padSeconds = 0.6) {
-  const out = [];
-  for (let s = 0; s < slideCount; s++) {
-    const a = audioSeconds && audioSeconds[s] ? audioSeconds[s] + padSeconds : 0;
-    out.push(Math.max(defaultSeconds, a));
-  }
-  return out;
+export function readingHoldSeconds(slide, { wpm = 200, leadSeconds = 0.8 } = {}) {
+  const text = [slide.headline || "", ...(slide.bullets || [])].join(" ");
+  const words = (text.match(/\S+/g) || []).length;
+  const wordsPerSecond = Math.max(1, wpm) / 60;
+  return leadSeconds + words / wordsPerSecond;
+}
+
+/**
+ * Per-slide durations. Each slide is held long enough to read its text
+ * (reading-time aware), clamped to [minSeconds, maxSeconds]. With TTS we never
+ * cut a slide shorter than its narration (plus padding), even past maxSeconds.
+ * @param {{headline?:string,bullets?:string[]}[]} slides
+ * @param {{minSeconds?:number,maxSeconds?:number,wpm?:number,
+ *          leadSeconds?:number,audioSeconds?:number[]|null,padSeconds?:number}} [opts]
+ */
+export function perSlideDurations(
+  slides,
+  {
+    minSeconds = 4.0,
+    maxSeconds = 8.0,
+    wpm = 200,
+    leadSeconds = 0.8,
+    audioSeconds = null,
+    padSeconds = 0.6,
+  } = {},
+) {
+  return slides.map((slide, s) => {
+    const read = readingHoldSeconds(slide, { wpm, leadSeconds });
+    const readHold = Math.min(maxSeconds, Math.max(minSeconds, read));
+    const narration = audioSeconds && audioSeconds[s] ? audioSeconds[s] + padSeconds : 0;
+    return Math.max(readHold, narration);
+  });
 }

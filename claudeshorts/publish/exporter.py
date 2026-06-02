@@ -32,6 +32,21 @@ def _locate_video(post_id: int) -> Path:
     )
 
 
+def _locate_slides(post_id: int) -> list[Path]:
+    """Find the per-slide carousel PNGs (review bundle first, then render dir).
+
+    Returns the slide images sorted by filename (slide_01, slide_02, …), or an
+    empty list if this post predates carousel rendering.
+    """
+    for base in (review_dir_for(post_id) / "slides",
+                 config.RENDERS_DIR / f"post_{post_id}" / "slides"):
+        if base.is_dir():
+            stills = sorted(base.glob("slide_*.png"))
+            if stills:
+                return stills
+    return []
+
+
 def export_post(
     post: dict[str, Any], platforms: list[str] | None = None
 ) -> list[Path]:
@@ -41,6 +56,7 @@ def export_post(
     platforms = platforms or cfg.get("platforms", ["youtube", "tiktok", "instagram"])
 
     video = _locate_video(post["id"])
+    slides = _locate_slides(post["id"])
     today = date.today().isoformat()
     caps = post.get("captions") or {}
 
@@ -49,6 +65,13 @@ def export_post(
         dest = config.PUBLISH_DIR / platform / today / f"post_{post['id']}"
         dest.mkdir(parents=True, exist_ok=True)
         shutil.copy2(video, dest / "video.mp4")
+        # Also drop the swipeable carousel so the post can go out as a slideshow
+        # (Instagram/TikTok) instead of the auto-advancing video.
+        if slides:
+            slides_dest = dest / "slides"
+            slides_dest.mkdir(parents=True, exist_ok=True)
+            for still in slides:
+                shutil.copy2(still, slides_dest / still.name)
         formatter = PLATFORM_CAPTION.get(platform)
         text = formatter(caps) if formatter else ""
         (dest / "caption.txt").write_text(text + "\n", encoding="utf-8")

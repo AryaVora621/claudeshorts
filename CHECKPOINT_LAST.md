@@ -1,36 +1,52 @@
-# CHECKPOINT — 2026-06-01 (desktop session)
+# CHECKPOINT - 2026-06-02
 
-Agent: Claude Code (Opus 4.8), desktop session. Mode: Debugger → Builder.
+Agent: Claude (Opus 4.8). Mode: Debugger -> Builder.
 
-## Completed (committed + pushed: `37d7a84` on `main`)
-- First **live end-to-end run on the macOS desktop**: ingest (113 items) →
-  select → generate (3 posts) → render (Chromium+ffmpeg) → review bundle →
-  dashboard → approve → per-platform export. Verified.
-- **Fixed bug #1 — generation:** `claude` CLI 2.1.159 changed
-  `--output-format json` to a stream-event **array**; patched
-  `claudeshorts/generate/generator.py::_result_text`.
-- **Fixed bug #2 — missing packages:** reconstructed `claudeshorts/review/`
-  (`__init__.py`, `queue.py`, `captions.py`) and `claudeshorts/publish/`
-  (`__init__.py`, `exporter.py`).
-- **Fixed root cause:** `.gitignore` `review/`/`publish/` were unanchored and
-  matched the source packages — anchored all runtime-dir patterns to repo root.
-  (This is why the original code was lost.)
-- Produced 2 valid MP4s (1080×1920 H.264, 24–28s). `compileall` clean.
+## Completed this session
+1. **Reading-time-aware slide pacing** (earlier today) — see TASK_QUEUE Done.
+2. **Full pipeline verified live, end to end** on the desktop:
+   - ingest -> select -> generate (claude_cli) -> render (Chromium+ffmpeg) -> review assembly.
+   - Generated post #4, rendered a valid **1080x1920 H.264** MP4, 1377 frames,
+     **45.9s** (6 slides at 6.5-8s each — confirms the new pacing is live; was
+     24s under the old fixed 4s/slide). Review folder assembled (video, thumb,
+     captions.md, manifest.json).
+3. **Fixed a real ingestion bug**: every HTTPS RSS feed silently returned 0
+   items. Root cause: `feedparser.parse(url)` fetches via Python's `urllib`,
+   which fails TLS on macOS (`CERTIFICATE_VERIFY_FAILED`, no system CA bundle).
+   Fix in `claudeshorts/ingest/fetchers.py::_fetch_rss`: fetch bytes with
+   `httpx` (bundles certifi) then `feedparser.parse(bytes)`. Now techcrunch/
+   theverge/arstechnica/arxiv all return items. (Reddit 403 is a separate,
+   known issue — unauthenticated hot.json is blocked.)
 
-## In progress
-- None. Clean stopping point; everything verified, committed, and pushed.
+## Completed (cont.)
+4. **Swipeable slideshow / carousel export** (user's priority). The pipeline
+   only made an auto-advancing MP4 before; now it also emits a swipe deck.
+   - `renderer/render.mjs` — after video capture, render each slide at its
+     settled state (all bullets in) and screenshot to `slides/slide_NN.png`;
+     return `slides:[...]` in the result JSON.
+   - `review/queue.py::assemble_review` — copy the deck into the review bundle
+     (`slides/`) + list it in manifest.json.
+   - `publish/exporter.py` — `_locate_slides()` + copy the deck into every
+     `publish/<platform>/<date>/post_<id>/slides/` (TikTok/Instagram/YouTube).
+   - Verified on post #4: 6 stills at 1080x1920, fully settled (eyeballed
+     slide_01 + slide_05), exported to all 3 platform folders.
 
-## Next action (deferred — user will resume chatting shortly)
-1. Optional full `claudeshorts run --force` (orchestrated daily runner;
-   generates 3 *new* posts + ~10 min of renders + subscription calls). Each
-   stage is already individually verified; this only exercises the wiring/guard.
-2. **Tune selection** — picks skewed to evergreen Hacker News front-page posts,
-   not "today's news". Adjust source weighting / recency in
-   `claudeshorts/generate/select.py` + `config/settings.yaml`.
-3. **Wire TTS + music** — `audio.mode` is `silent`; add Piper/edge-tts +
-   royalty-free music in `assets/music/`.
-4. **Reddit 403** — both Reddit sources are blocked (unauthenticated
-   `hot.json`); add OAuth or drop them. Non-fatal (other sources gave 113 items).
+## Next (deferred behind carousel, per user)
+- **Batch generation (up to 20)**: clamp 1-20, per-post error isolation (skip a
+  bad gen, keep going), `rich` progress bar (per-post + total). Decisions
+  already gathered.
+- **Wider topic range**: add sources (security, hardware/chips, consumer/
+  gadgets/gaming, AI/top-companies) + virality-aware "buzz" scoring (favor items
+  naming top entities / hot actions). No per-source hard cap (user wants best-
+  by-virality). Live-check each new feed and drop dead ones.
+- Minor: generated copy still contains em dashes (e.g. post #4 slide 5) — add
+  "no em dashes" to the generation system prompt when doing the topics work.
+
+## Verification commands
+- `.venv/bin/python -m claudeshorts.cli ingest --limit 10`  (RSS now works)
+- `.venv/bin/python -m claudeshorts.cli generate --limit 1` (post #4)
+- `.venv/bin/python -m claudeshorts.cli render 4`           (valid MP4)
+- `ffprobe ... renders/post_4/video.mp4`                    (h264 1080x1920 45.9s)
 
 ## Human decisions needed
-- None outstanding. (Commit-to-main decision was made and executed.)
+- Approve the batch + wide-topics plan (see chat) before I implement.

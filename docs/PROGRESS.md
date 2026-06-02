@@ -16,10 +16,49 @@ the desktop (blocked in this container); all logic is verified here.
 
 ## ▶ Resume here (session handoff — 2026-06-01)
 
+### Pacing fix (2026-06-02) — reading-time-aware slide holds
+
+Slides used to hold for a fixed `video.seconds_per_slide` (4.0s) no matter how
+much text they carried, so dense slides "scrolled too fast." Slide hold is now
+reading-time aware: `clamp(read_lead_seconds + words/(reading_speed_wpm/60),
+seconds_per_slide, max_seconds_per_slide)`, and TTS narration is never cut.
+Changed `renderer/lib/timeline.mjs` (`perSlideDurations(slides, opts)` +
+`readingHoldSeconds`), `renderer/render.mjs` (passes the new knobs from
+`spec.video`), and `config/settings.yaml` (new `reading_speed_wpm`,
+`read_lead_seconds`, `max_seconds_per_slide`; `seconds_per_slide` is now the
+floor). Verified via a Node smoke test; a real Chromium+ffmpeg render still
+needs eyeballing on the desktop. Generation was left unchanged.
+
+
 **Latest commit on `main`: `37d7a84`** (the desktop fixes below; pushed).
 (Note: `84dfa34`, `e10fc5d`, and `37d7a84` are **unsigned** — the managed
 commit-signing service was returning `400 missing source`; earlier phases are
 signed. Re-sign later if desired.)
+
+### Desktop session (2026-06-02) - launcher repaired for moved checkout
+
+The macOS launcher failed from `/Users/aryavora/Desktop/Business/claudeshorts`
+with:
+
+```text
+ERROR: Package 'claudeshorts' requires a different Python: 3.9.6 not in '>=3.11'
+```
+
+Root cause: the checkout had been moved from `/Users/aryavora/Desktop/claudeshorts`;
+the existing `.venv` still had generated scripts such as `.venv/bin/pip` and
+`.venv/bin/claudeshorts` pointing at the old path. The launcher only checked
+`.venv/bin/python`, so it treated the venv as valid and could still hit a stale
+or wrong pip path during dependency installation.
+
+Fixed `start-dashboard.sh` to validate the pip script too, recreate an old or
+moved `.venv`, and run dependency install/init/serve through the selected venv
+interpreter with `"$VENV_PYTHON" -m pip` and `"$VENV_PYTHON" -m claudeshorts...`.
+
+Verified locally: `CLAUDESHORTS_PORT=8765 ./start-dashboard.sh` recreated the
+venv with Python 3.13.13, installed dependencies, initialized the DB, started
+Uvicorn, and served dashboard pages with 200 responses. `bash -n
+start-dashboard.sh`, `.venv/bin/python -m claudeshorts.cli version`, and shebang
+checks for `.venv/bin/pip` and `.venv/bin/claudeshorts` passed.
 
 ### ✅ Desktop session (2026-06-01) — full pipeline verified live + 2 real bugs fixed
 
