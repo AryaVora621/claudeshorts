@@ -8,8 +8,31 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
+# Bind address: default to all interfaces so the dashboard is reachable from
+# other devices on your LAN (the desktop / home-server use case). Set
+# CLAUDESHORTS_HOST=127.0.0.1 to restrict it to this machine only.
+HOST="${CLAUDESHORTS_HOST:-0.0.0.0}"
 PORT="${CLAUDESHORTS_PORT:-8000}"
-URL="http://127.0.0.1:${PORT}"
+URL="http://127.0.0.1:${PORT}"   # the browser we auto-open is always local
+
+# Best-effort LAN IP for the "reachable from other devices" URL we print.
+lan_ip() {
+  local ip=""
+  if command -v ip >/dev/null 2>&1; then
+    ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')" || ip=""
+  fi
+  if [ -z "$ip" ] && command -v hostname >/dev/null 2>&1; then
+    ip="$(hostname -I 2>/dev/null | awk '{print $1; exit}')" || ip=""
+  fi
+  if [ -z "$ip" ] && command -v ipconfig >/dev/null 2>&1; then
+    local i
+    for i in en0 en1 en2 en3; do
+      ip="$(ipconfig getifaddr "$i" 2>/dev/null)" || ip=""
+      [ -n "$ip" ] && break
+    done
+  fi
+  printf '%s' "$ip"
+}
 
 # True if $1 is a runnable interpreter reporting version >= 3.11.
 py_ok() {
@@ -91,5 +114,13 @@ fi
   fi ) >/dev/null 2>&1 &
 
 echo ""
-echo "▶ claudeshorts dashboard → $URL   (press Ctrl-C to stop)"
-exec "$VENV_PYTHON" -m claudeshorts.cli serve --port "$PORT"
+echo "▶ claudeshorts dashboard   (press Ctrl-C to stop)"
+echo "    local:  $URL"
+if [ "$HOST" = "0.0.0.0" ]; then
+  LANIP="$(lan_ip)"
+  if [ -n "$LANIP" ]; then
+    echo "    LAN:    http://${LANIP}:${PORT}   (open this from other devices on your network)"
+  fi
+  echo "    note:   listening on all interfaces; set CLAUDESHORTS_HOST=127.0.0.1 to keep it local-only."
+fi
+exec "$VENV_PYTHON" -m claudeshorts.cli serve --host "$HOST" --port "$PORT"

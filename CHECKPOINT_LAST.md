@@ -60,9 +60,28 @@ outro, md5 56e1883c07), videos are 49.9/42.5/42.5/42.2s. Left exported posts
 (3, 8, 9) were never rendered. (These live in gitignored review/ + renders/, so
 nothing to commit.)
 
+## Pushed + LAN dashboard + local-model plan (2026-06-02)
+- Pushed `feature/carousel-wider-topics` to origin (commits up to the LAN work).
+- LAN-accessible dashboard: `start-dashboard.sh` now binds `${CLAUDESHORTS_HOST:-0.0.0.0}`
+  (all interfaces) so other LAN devices can reach the desktop's dashboard; passes
+  `--host` to `cli serve` and prints local + auto-detected LAN URLs. Override with
+  `CLAUDESHORTS_HOST=127.0.0.1`. Verified: 200 on 127.0.0.1 AND 192.168.1.164.
+- Local-model backend: PLAN ONLY, written to `docs/PLAN_local_model.md` (Qwen3-30B-A3B
+  GGUF on the P40; fp8 impossible on Pascal -> use Q4/Q5 GGUF via Ollama/llama.cpp;
+  new `local` backend reusing JSON-in-prompt + validate_post). Not implemented.
+
+## BLOCKED
+- Home server `aiserver@192.168.1.178` unreachable (incomplete ARP from a same-
+  subnet machine, 192.168.1.164). User is fixing the Linux box; deferred. The
+  server end-to-end test + the local-model build wait on this.
+
 ## NEXT (resume here)
-1. Still open from before: test the branch on the HOME SERVER end to end, then
-   open a PR / merge to main.
+1. When the server is back: pull the branch, run the launcher (now LAN-bound),
+   do the end-to-end test, then open a PR / merge to main.
+2. Local model: get user's calls on the open decisions in `docs/PLAN_local_model.md`
+   (Ollama vs llama.cpp, quality bar, quant target), then implement the `local`
+   backend.
 
 ## Human decisions needed
-- None outstanding. PR/merge timing is the user's call.
+- The 3 open decisions in `docs/PLAN_local_model.md` (inference server, quality
+  trade-off, quant target).

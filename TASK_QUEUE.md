@@ -1,9 +1,15 @@
 # Task Queue
 
 ## Open
-- Test the `feature/carousel-wider-topics` branch on the HOME SERVER (pull,
-  ingest, generate --limit 20, render, eyeball video + carousel), then open a
-  PR / merge to main. (User testing this next.)
+- BLOCKED on hardware: test the branch on the HOME SERVER (aiserver desktop,
+  Nvidia P40). Server `192.168.1.178` is currently unreachable (incomplete ARP
+  from a same-subnet host) — user is troubleshooting the Linux box (rebooted,
+  tried ethernet). Once it is back: pull, ingest, generate --limit 20, render,
+  eyeball video + carousel + endslide, then open a PR / merge to main.
+- PLANNED: local model generation backend (Qwen3-30B-A3B GGUF on the P40) as a
+  free alternative to claude_cli / api. Full plan in `docs/PLAN_local_model.md`.
+  Key note: the P40 is Pascal, so fp8 is NOT possible — use integer-quantized
+  GGUF (Q4/Q5) via Ollama or llama.cpp. Open decisions listed in the plan.
 - DEPRIORITIZED — cross-outlet duplicate stories: "some duplicates are fine"
   (user). Investigation notes in CHECKPOINT_LAST.md (IDF-weighted shared-token
   approach; RTX-Spark false-merge risk). Revisit only if it becomes annoying.
@@ -17,6 +23,12 @@
   instrumentation only (no stop/cancel, no change to what jobs do). See PLAN.md.
 
 ## Done
+- LAN-accessible dashboard: `start-dashboard.sh` now binds to all interfaces by
+  default (override with `CLAUDESHORTS_HOST=127.0.0.1`) and prints both the local
+  and LAN URLs (auto-detected IP). `cli serve` already took `--host`; the launcher
+  now passes it. Verified: dashboard answers 200 on both 127.0.0.1 and the LAN IP
+  (192.168.1.164); lan_ip detection works on macOS + Linux. So a phone/laptop on
+  the network can open the desktop's dashboard.
 - Auto-included ending slide: a pre-made outro image (auto-detected from
   `assets/`, e.g. `EndingSlide.png`; override via settings `video.endslide`) is
   normalized to 1080x1920 and appended both to the end of every video (held
