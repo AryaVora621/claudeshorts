@@ -51,12 +51,18 @@ auto-included outro slide (committed separately — see git log):
 - Verified live (post 10, real Chromium+ffmpeg): 40.0s->42.5s, +75 frames, last
   video frame = the outro, deck 5->6 stills (slide_06 = branded outro).
 
+## Re-rendered the review queue with the new outro (2026-06-02)
+Posts 12, 11, 10, 5 (status `rendered`) re-rendered + re-assembled so the
+dashboard decks and videos carry the outro. Verified: review bundles now hold
+7/6/6/6 stills, each deck's last still is byte-identical (the same normalized
+outro, md5 56e1883c07), videos are 49.9/42.5/42.5/42.2s. Left exported posts
+(1, 4) and rejected post 2 untouched so shipped content isn't altered; drafts
+(3, 8, 9) were never rendered. (These live in gitignored review/ + renders/, so
+nothing to commit.)
+
 ## NEXT (resume here)
 1. Still open from before: test the branch on the HOME SERVER end to end, then
    open a PR / merge to main.
-2. Re-render existing posts if you want the new outro on already-rendered decks
-   (only post 10 was re-rendered, to a temp dir; the committed renders are
-   unchanged).
 
 ## Human decisions needed
 - None outstanding. PR/merge timing is the user's call.
