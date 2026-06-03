@@ -12,13 +12,14 @@ live to the browser (see ``jobs`` + the ``/jobs`` routes).
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode
 
 from fastapi import FastAPI, Request
 from fastapi.responses import (
-    FileResponse, HTMLResponse, RedirectResponse, StreamingResponse,
+    FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse,
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -29,6 +30,11 @@ from . import auth, jobs, settings_io
 
 _HERE = Path(__file__).resolve().parent
 _templates = Jinja2Templates(directory=str(_HERE / "templates"))
+
+# Media names the dashboard will serve for a post: the video, its poster, and
+# the carousel stills (``slides/slide_NN.png``). The strict slide pattern keeps
+# the path-joined media lookup from being abused for traversal.
+_SLIDE_RE = re.compile(r"^slides/slide_\d{2,}\.png$")
 
 
 # --- small helpers ---------------------------------------------------------
@@ -46,15 +52,17 @@ def _redirect(path: str, *, msg: str | None = None, err: str | None = None):
 
 
 def _media_path(post_id: int, name: str) -> Path | None:
-    """Locate a post's rendered media in the review folder (any date)."""
+    """Locate a post's rendered media: review bundle first, then the render dir."""
     from ..review.queue import review_dir_for
 
-    d = review_dir_for(post_id)
-    path = d / name
+    path = review_dir_for(post_id) / name
     if path.exists():
         return path
     matches = sorted(config.REVIEW_DIR.glob(f"*/post_{post_id}/{name}"))
-    return matches[-1] if matches else None
+    if matches:
+        return matches[-1]
+    rendered = config.RENDERS_DIR / f"post_{post_id}" / name
+    return rendered if rendered.exists() else None
 
 
 def create_app() -> FastAPI:
@@ -104,12 +112,24 @@ def create_app() -> FastAPI:
             return _redirect("/", err=f"unknown action {name}")
         return _redirect(f"/jobs/{jid}")
 
+    @app.get("/jobs", response_class=HTMLResponse)
+    def jobs_list(request: Request):
+        return page(request, "jobs.html", active="jobs", jobs=jobs.recent_jobs(50))
+
+    @app.get("/jobs.json")
+    def jobs_json(request: Request):
+        try:
+            limit = max(1, min(200, int(request.query_params.get("limit", 50))))
+        except ValueError:
+            limit = 50
+        return JSONResponse({"jobs": [j.to_dict() for j in jobs.recent_jobs(limit)]})
+
     @app.get("/jobs/{job_id}", response_class=HTMLResponse)
     def job_detail(request: Request, job_id: int):
         job = jobs.get_job(job_id)
         if not job:
             return _redirect("/", err="no such job")
-        return page(request, "job.html", active="", job=job)
+        return page(request, "job.html", active="jobs", job=job)
 
     @app.get("/jobs/{job_id}/stream")
     def job_stream(job_id: int):
@@ -122,17 +142,19 @@ def create_app() -> FastAPI:
     # --- Review queue ------------------------------------------------------
     @app.get("/review", response_class=HTMLResponse)
     def review(request: Request):
-        from ..review.queue import pending_reviews
+        from ..review.queue import carousel_slides, pending_reviews
         from ..review.captions import PLATFORM_CAPTION
 
         posts = pending_reviews()
         caps = {p["id"]: {pl: fn(p.get("captions") or {})
                           for pl, fn in PLATFORM_CAPTION.items()} for p in posts}
-        return page(request, "review.html", active="review", posts=posts, caps=caps)
+        decks = {p["id"]: carousel_slides(p["id"]) for p in posts}
+        return page(request, "review.html", active="review",
+                    posts=posts, caps=caps, decks=decks)
 
-    @app.get("/media/{post_id}/{name}")
+    @app.get("/media/{post_id}/{name:path}")
     def media(post_id: int, name: str):
-        if name not in ("video.mp4", "thumb.png"):
+        if name not in ("video.mp4", "thumb.png") and not _SLIDE_RE.match(name):
             return HTMLResponse("not found", status_code=404)
         path = _media_path(post_id, name)
         if not path:
@@ -241,12 +263,29 @@ def create_app() -> FastAPI:
     # --- Posts -------------------------------------------------------------
     @app.get("/posts", response_class=HTMLResponse)
     def posts(request: Request):
+        from ..review.queue import carousel_slides
         from ..store import all_posts
 
         with connect() as conn:
             rows = all_posts(conn, 200)
+        # Only posts past rendering can have a deck on disk; limit the lookups.
+        decks = {p["id"]: len(carousel_slides(p["id"])) for p in rows
+                 if p["status"] in ("rendered", "approved", "exported")}
         return page(request, "posts.html", active="posts", posts=rows,
-                    today=date.today().isoformat())
+                    decks=decks, today=date.today().isoformat())
+
+    @app.get("/posts/{post_id}/carousel", response_class=HTMLResponse)
+    def post_carousel(request: Request, post_id: int):
+        from ..review.queue import carousel_slides
+        from ..store import get_post
+
+        with connect() as conn:
+            post = get_post(conn, post_id)
+        if not post:
+            return _redirect("/posts", err="post not found")
+        slides = carousel_slides(post_id)
+        return page(request, "carousel.html", active="posts",
+                    post=post, slides=slides)
 
     @app.post("/posts/{post_id}/render")
     def post_render(post_id: int):

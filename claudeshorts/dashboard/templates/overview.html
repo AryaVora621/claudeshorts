@@ -35,17 +35,10 @@
   {{ last_run.posts_created }} post(s). <a href="/runs">full history →</a></p>
 {% endif %}
 
-{% if recent_jobs %}
-<h2>Recent jobs</h2>
-<table>
-  <tr><th>#</th><th>Job</th><th>Status</th></tr>
-  {% for j in recent_jobs %}
-  <tr>
-    <td><a href="/jobs/{{ j.id }}">{{ j.id }}</a></td>
-    <td>{{ j.name }}</td>
-    <td><span class="badge {{ j.status }}">{{ j.status }}</span></td>
-  </tr>
-  {% endfor %}
-</table>
-{% endif %}
+<h2>Recent jobs
+  <a class="muted" style="font-size:13px;font-weight:600;margin-left:6px" href="/jobs">see all →</a></h2>
+<div data-jobs-list data-jobs-mode="link" data-limit="6" id="job-list">
+  <p class="empty">No jobs yet. Start one above.</p>
+</div>
+<script src="/static/jobs.js"></script>
 {% endblock %}

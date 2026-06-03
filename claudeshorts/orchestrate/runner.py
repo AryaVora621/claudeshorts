@@ -12,6 +12,7 @@ import time
 from datetime import date
 from typing import Any, Callable
 
+from .. import progress
 from ..config import settings
 from ..ingest import run_ingest
 from ..generate import run_generate
@@ -72,13 +73,21 @@ def run_pipeline(
         run_id = start_run(conn, today)
         conn.commit()
 
+    # A full run moves through four reported phases so the dashboard can draw a
+    # coarse phase bar; each phase reports its own per-item steps for the finer
+    # bar (feed M of N, post M of N, frame M of N).
+    n_phases = 4
     summary: dict[str, Any] = {"date": today, "skipped": False}
     try:
+        progress.phase(1, n_phases, "ingest")
+        progress.reset_step("ingesting news")
         log.info("ingesting news...")
         ingest_stats = _retry(run_ingest, what="ingest")
         summary["ingest"] = {k: ingest_stats[k] for k in
                              ("stored", "duplicates", "total_items") if k in ingest_stats}
 
+        progress.phase(2, n_phases, "generate")
+        progress.reset_step("selecting topics")
         log.info("generating up to %d posts...", limit)
         results = _retry(lambda: run_generate(limit=limit), what="generate")
         summary["generated"] = [r["post_id"] for r in results]
@@ -89,8 +98,12 @@ def run_pipeline(
             log.info("skip-render set: %d draft posts left for separate render",
                      len(results))
         else:
-            for r in results:
+            n_render = len(results)
+            for i, r in enumerate(results, 1):
                 pid = r["post_id"]
+                # The per-item bar is owned by the renderer (frame M of N); the
+                # phase label carries which post of the batch we are on.
+                progress.phase(3, n_phases, f"render · post {i}/{n_render}")
                 try:
                     with connect() as conn:
                         post = get_post(conn, pid)
@@ -103,6 +116,8 @@ def run_pipeline(
         summary["rendered"] = rendered
 
         # Drain the future-posts queue: export any approved post now due.
+        progress.phase(4, n_phases, "publish")
+        progress.reset_step("publishing due posts")
         try:
             from ..publish import publish_due_posts
             published = publish_due_posts()

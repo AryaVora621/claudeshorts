@@ -85,6 +85,22 @@ def assemble_review(post: dict[str, Any], result: dict[str, Any]) -> Path:
     return dest
 
 
+def carousel_slides(post_id: int) -> list[str]:
+    """Filenames of a post's swipeable deck stills, sorted, or [] if none.
+
+    Looks in the review bundle first (what the dashboard serves), then the raw
+    render dir, so it works before and after a post is assembled for review.
+    Posts that predate carousel rendering simply have no ``slides/`` folder.
+    """
+    for base in (review_dir_for(post_id) / "slides",
+                 config.RENDERS_DIR / f"post_{post_id}" / "slides"):
+        if base.is_dir():
+            names = sorted(p.name for p in base.glob("slide_*.png"))
+            if names:
+                return names
+    return []
+
+
 def pending_reviews() -> list[dict[str, Any]]:
     """Rendered posts awaiting a human approve/reject decision."""
     with connect() as conn:

@@ -13,7 +13,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .. import config
+from .. import config, progress
 from ..review.captions import PLATFORM_CAPTION
 from ..review.queue import review_dir_for
 from ..store import connect, due_posts, set_status
@@ -96,7 +96,9 @@ def publish_due_posts(on_date: str | None = None) -> list[int]:
         due = due_posts(conn, on_date)
 
     published: list[int] = []
-    for post in due:
+    total = len(due)
+    for i, post in enumerate(due, 1):
+        progress.step(i, total, f"exporting post {post['id']}")
         try:
             export_post(post)
         except FileNotFoundError:

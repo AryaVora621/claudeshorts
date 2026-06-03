@@ -2,36 +2,26 @@
 {% block title %}Job {{ job.id }}{% endblock %}
 {% block body %}
 <h1>Job #{{ job.id }} — {{ job.name }}</h1>
-<p class="sub">Status: <span class="badge {{ job.status }}" id="status">{{ job.status }}</span></p>
+<p class="sub">Status: <span class="badge {{ job.status }}" id="term-status">{{ job.status }}</span>
+  · <a href="/jobs">all jobs →</a></p>
 
-<div id="log">{% for line in job.lines %}{{ line }}
+<div class="term">
+  <div class="term-bars" id="term-bars"></div>
+  <div class="term-log" id="term-log">{% for line in job.lines %}{{ line }}
 {% endfor %}</div>
+</div>
 
 <div class="row" style="margin-top:16px">
-  <a class="btn" href="/">← Overview</a>
+  <a class="btn" href="/jobs">← All jobs</a>
+  <a class="btn" href="/">Overview</a>
   <a class="btn" href="/review">Review queue</a>
   <a class="btn" href="/posts">Posts</a>
 </div>
 
+<script src="/static/jobs.js"></script>
 <script>
-(function () {
-  var done = {{ 'true' if job.done else 'false' }};
-  if (done) return;
-  var log = document.getElementById('log');
-  var statusEl = document.getElementById('status');
-  // Replay from scratch so we don't depend on what the page pre-rendered.
-  log.textContent = '';
-  var es = new EventSource('/jobs/{{ job.id }}/stream');
-  es.onmessage = function (e) {
-    log.textContent += e.data + '\n';
-    log.scrollTop = log.scrollHeight;
-  };
-  es.addEventListener('done', function (e) {
-    statusEl.textContent = e.data;
-    statusEl.className = 'badge ' + e.data;
-    es.close();
-  });
-  es.onerror = function () { es.close(); };
-})();
+  // Stream this job into the shared terminal (live lines + progress bars). For a
+  // finished job the stream replays the stored log, then closes.
+  JobsUI.attachTerminal({{ job.id }}, { logId: "term-log", barsId: "term-bars", statusId: "term-status" });
 </script>
 {% endblock %}

@@ -1,95 +1,49 @@
-# CHECKPOINT / RESUME REPORT - 2026-06-02
+# CHECKPOINT / RESUME REPORT - 2026-06-02 (carousel deck in dashboard)
 
-Agent: Claude (Opus 4.8). This is the authoritative "pick up here" doc. If
-context was cleared, read this + `docs/PROGRESS.md` + `TASK_QUEUE.md` and you're
-oriented.
+Agent: Claude (Opus 4.8), branch `feature/carousel-wider-topics`.
 
-## Where the work lives
-- **Branch: `feature/carousel-wider-topics`** (pushed to `origin`).
-- 4 commits ahead of `main`, all verified locally on the macOS desktop:
-  ```
-  f0ccbd0 Batch generation up to 20: resilient + live progress bar
-  0898516 Wider tech topics + virality-aware selection + humanized voice
-  063e396 Reading-time slide pacing + swipeable carousel export
-  97d49ea Fix RSS ingestion: fetch feeds via httpx (macOS TLS)
-  ```
-- NOT touched (prior session, intentionally left): `start-dashboard.sh` (modified),
-  `AGENTS.md` (untracked).
-- `main` is unchanged. Nothing merged. No PR opened yet.
+## Status: DONE + verified live (UNCOMMITTED working-tree changes)
+The carousel deck now appears in the dashboard. It was already exported to
+`publish/<platform>/` but was never displayed: the `/media` route only served
+`video.mp4`/`thumb.png` and no template rendered the slides. Finished end to end
+and verified live with Playwright. Nothing committed yet.
 
-## What this branch adds (all DONE + verified)
-1. **RSS ingestion fix** (`claudeshorts/ingest/fetchers.py`): `feedparser.parse(url)`
-   fetched via urllib and failed TLS on macOS (CERTIFICATE_VERIFY_FAILED), so every
-   HTTPS feed silently returned 0 items. Now fetch bytes with `httpx` (certifi) and
-   parse those. All RSS feeds work.
-2. **Reading-time slide pacing** (`renderer/lib/timeline.mjs`, `render.mjs`,
-   `config/settings.yaml`): each slide is held long enough to read its text
-   (clamp(lead + words/wpm, min, max)) instead of a fixed 4s. Knobs under `video:`:
-   `seconds_per_slide` (floor), `reading_speed_wpm` (200), `read_lead_seconds`
-   (0.8), `max_seconds_per_slide` (8). Verified: post #4 = 45.9s (was 24s).
-3. **Swipeable carousel** (`renderer/render.mjs`, `review/queue.py`,
-   `publish/exporter.py`): renderer also writes one settled 1080x1920 PNG per slide
-   to `slides/slide_NN.png`; carried into the review bundle and every
-   `publish/<platform>/<date>/post_<id>/slides/`. So a post ships as a TikTok/IG
-   swipe deck AND the auto-advancing video. Verified on post #4 (6 cards, exported
-   to all 3 platforms).
-4. **Wider topics + virality scoring + humanized voice**
-   (`config/sources.yaml`, `config/settings.yaml`, `generate/select.py`,
-   `generate/generator.py`): 19 live RSS feeds across general tech, AI/big-tech
-   (incl. Nvidia/Google blogs), security (Krebs, BleepingComputer, TheHackerNews),
-   hardware/chips (Tom's, IEEE, The Register), consumer/gaming (Engadget, Wired,
-   Polygon). Dead AnandTech dropped; 403-ing Reddit commented out (needs OAuth).
-   `select.interest` buzz scoring boosts items naming hot entities/actions ->
-   top-20 now spans 7 sources (was 100% Hacker News). Generation prompt broadened
-   + humanized (natural voice, no AI-slop, NEVER em dashes) as a writing
-   instruction, NOT a hard filter (no humanizer skill is installed). Verified:
-   post #5 = 0 em dashes, reads human.
-5. **Batch generation up to 20** (`generate/runner.py`, `cli.py`): `run_generate`
-   clamps to MAX_BATCH=20, generates each post independently (one failure logged +
-   skipped, batch continues), optional `on_progress` hook + per-post logging
-   (streams to dashboard SSE). `cli generate` draws a live `rich` bar (spinner +
-   current post + M/N + elapsed); prints `generated=X failed=Y`. Return type
-   unchanged so cli/orchestrate/dashboard callers needed no edits. Verified: mock
-   failure isolation (3 attempted -> 2 created) + real `--limit 2` run.
+## What was built this session
+- `claudeshorts/dashboard/app.py`
+  - `/media/{post_id}/{name:path}` now also serves `slides/slide_NN.png`, gated
+    by `_SLIDE_RE = ^slides/slide_\d{2,}\.png$` (blocks path traversal); the
+    earlier exact-name allowlist stays for video/thumb. `_media_path` also falls
+    back to `renders/post_<id>/` after the review bundle.
+  - New `GET /posts/{id}/carousel` -> full-size deck page.
+  - Review + Posts routes pass per-post deck info (`decks`).
+- `claudeshorts/review/queue.py` — new `carousel_slides(post_id)` -> sorted slide
+  filenames (review bundle first, then render dir; [] for pre-carousel posts).
+- Templates: new `_carousel.html` (reusable swipeable deck; `pid`, `slides`,
+  optional `variant="inline"`) and `carousel.html` (standalone page). `review.html`
+  embeds the deck under the video; `posts.html` adds a "Carousel (N)" link;
+  `base.html` gained a `{% block scripts %}`.
+- `static/carousel.js` — prev/next, click-drag, arrow keys, live `n/total`
+  counter over a native CSS scroll-snap track (progressive enhancement).
+- `static/app.css` — `.carousel*` component + `.deck-label`/`.deck-stage`.
 
-## Environment (this desktop, all present)
-Python 3.13 venv (`.venv`), `claude` CLI 2.1.160 (logged in), node 24,
-ffmpeg/ffprobe 8.1, Playwright Chromium. Backend = `claude_cli` (subscription).
+## Verified (this session)
+- TestClient: `/review` (markup present), `/posts`, `/posts/10/carousel` all 200;
+  `/media/10/slides/slide_01.png` -> 200 image/png (647 KB); `/media/10/video.mp4`
+  -> 200; traversal `slides/../../../etc/passwd` -> 404; `slide_99.png` -> 404;
+  Posts page contains the carousel link. Decks exist for posts 4/5/10/11/12.
+- Playwright (live server on :8791): Review cards show video + inline deck;
+  `/posts/10/carousel` renders full size; clicking next scrolled exactly one
+  slide (scrollLeft 0->428 == clientWidth) and the counter went 1->2 of 5.
+- `node --check carousel.js` passed. Test artifacts (screenshots, .playwright-mcp)
+  cleaned; test server stopped.
 
-## DB drafts available to eyeball/render (data/app.db, gitignored)
-#3, #5, #8, #9 are `draft`. #4 already rendered (video + 6-slide carousel under
-`renders/post_4/` and `review/2026-06-02/post_4/`). Render any: `... render <id>`.
-
-## Duplicate-story dedup — DEPRIORITIZED (user: "some duplicates are fine")
-Investigated but intentionally NOT changed. Findings preserved for later:
-- Current dedup (`select.py`): skip a candidate if its TITLE tokens overlap an
-  already-picked title by >= `_DUP_MIN_OVERLAP` (4). Too weak across outlets
-  (same story, different phrasing shares few exact title tokens).
-- Best approach found: IDF-weight shared title+summary tokens over the candidate
-  pool (rare tokens like "spark"/"mythos" matter, common ones like "nvidia"/"ai"
-  don't), dup if shared-rare mass / smaller-item mass is high. Caught Claude
-  Mythos (0.50) and Instagram-hijack (0.38); RTX Spark needs care (false-merge
-  risk: "Nvidia RTX Spark" HN title with no summary scored 1.0 vs unrelated Nvidia
-  items). Needs a min-shared-token guard + summary presence. Not worth it now.
-
-## To run on the HOME SERVER (next step, per user)
-```bash
-git fetch origin && git checkout feature/carousel-wider-topics && git pull
-rm -rf .venv                     # if Python differs from this desktop
-./start-dashboard.sh             # Linux; or start-dashboard.command on macOS
-# then, end to end:
-python -m claudeshorts.cli ingest          # live feeds
-python -m claudeshorts.cli generate --limit 20   # batch w/ progress bar
-python -m claudeshorts.cli render <post-id>      # video + slides/ carousel
-python -m claudeshorts.cli serve                 # review dashboard :8000
-```
-Renderer needs `cd renderer && npm install && npx playwright install chromium`
-plus ffmpeg. Outputs: `renders/post_<id>/` (video.mp4, thumb.png, slides/), the
-review bundle, and `publish/<platform>/<date>/post_<id>/` (video + slides/ deck).
-
-## Next / open (see TASK_QUEUE.md)
-- Open a PR / merge to `main` once tested on the home server.
-- Optional: dedup (above), dashboard carousel preview, parallel batch generation.
+## NEXT (resume here)
+1. Optional: review the full working-tree diff, then commit on this branch
+   (user must approve a commit; do not push to main). The live jobs dashboard
+   from the prior session is also still uncommitted in this tree.
+2. Still open from before: test the branch on the HOME SERVER end to end, then
+   open a PR / merge to main.
 
 ## Human decisions needed
-- None blocking. User will test on the home server, then decide on merge.
+- Commit this (and the prior live-jobs-dashboard work) on
+  `feature/carousel-wider-topics`, or split into separate commits/branch?

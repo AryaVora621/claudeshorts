@@ -1,0 +1,17 @@
+{# Swipeable carousel deck. Expects `pid` (post id) and `slides` (filenames).
+   Optional `variant` ("inline" caps height inside review cards). #}
+{% if slides %}
+<div class="carousel {{ variant or '' }}" data-count="{{ slides|length }}">
+  <div class="carousel-track">
+    {% for name in slides %}
+      <img class="carousel-slide" src="/media/{{ pid }}/slides/{{ name }}"
+           loading="lazy" draggable="false" alt="Slide {{ loop.index }} of {{ slides|length }}">
+    {% endfor %}
+  </div>
+  {% if slides|length > 1 %}
+    <button type="button" class="carousel-nav prev" aria-label="Previous slide">‹</button>
+    <button type="button" class="carousel-nav next" aria-label="Next slide">›</button>
+  {% endif %}
+  <div class="carousel-count"><span class="cur">1</span> / {{ slides|length }}</div>
+</div>
+{% endif %}

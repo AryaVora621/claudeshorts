@@ -39,10 +39,19 @@ if [ -z "$PYBIN" ]; then
 fi
 echo "• Using $("$PYBIN" -V 2>&1) ($PYBIN)"
 
-# (Re)create the venv if it's missing or was built with an older Python.
+# True if the existing venv is usable from this repo path.
+venv_ok() {
+  [ -x .venv/bin/python ] || return 1
+  py_ok ".venv/bin/python" || return 1
+  ".venv/bin/python" -m pip -V >/dev/null 2>&1 || return 1
+  [ -x .venv/bin/pip ] || return 1
+  ".venv/bin/pip" -V >/dev/null 2>&1 || return 1
+}
+
+# (Re)create the venv if it's missing, old, or still points at a moved checkout.
 recreate=0
 if [ -d .venv ]; then
-  py_ok ".venv/bin/python" || { echo "• Existing .venv uses an old Python — recreating…"; rm -rf .venv; recreate=1; }
+  venv_ok || { echo "• Existing .venv is old or moved - recreating..."; rm -rf .venv; recreate=1; }
 else
   recreate=1
 fi
@@ -52,17 +61,18 @@ if [ "$recreate" -eq 1 ]; then
 fi
 # shellcheck disable=SC1091
 source .venv/bin/activate
+VENV_PYTHON="$ROOT/.venv/bin/python"
 
 # Install deps only if a core dependency is actually missing. (Don't probe the
 # local `claudeshorts` package — it imports from the repo dir even uninstalled.)
 DEPS_PROBE="import typer, fastapi, uvicorn, jinja2, anthropic, feedparser, yaml, httpx, dotenv"
-if ! python -c "$DEPS_PROBE" >/dev/null 2>&1; then
+if ! "$VENV_PYTHON" -c "$DEPS_PROBE" >/dev/null 2>&1; then
   echo "• Installing Python dependencies (first run can take a minute)…"
-  pip install -q --upgrade pip
-  pip install -q -e .
+  "$VENV_PYTHON" -m pip install -q --upgrade pip setuptools wheel
+  "$VENV_PYTHON" -m pip install -q -e .
 fi
 
-python -m claudeshorts.cli init-db >/dev/null
+"$VENV_PYTHON" -m claudeshorts.cli init-db >/dev/null
 
 # Renderer deps (best-effort; the dashboard runs without them).
 if command -v node >/dev/null 2>&1; then
@@ -82,4 +92,4 @@ fi
 
 echo ""
 echo "▶ claudeshorts dashboard → $URL   (press Ctrl-C to stop)"
-exec python -m claudeshorts.cli serve --port "$PORT"
+exec "$VENV_PYTHON" -m claudeshorts.cli serve --port "$PORT"

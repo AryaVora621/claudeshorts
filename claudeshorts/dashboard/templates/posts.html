@@ -29,7 +29,12 @@
       {% if p.status in ('rendered','approved') %}
         <form class="inline" method="post" action="/posts/{{ p.id }}/export">
           <button class="btn small green" type="submit">Export</button></form>
+      {% endif %}
+      {% if p.status in ('rendered','approved','exported') %}
         <a class="btn small" href="/media/{{ p.id }}/video.mp4" target="_blank">Video</a>
+        {% if decks.get(p.id) %}
+          <a class="btn small" href="/posts/{{ p.id }}/carousel">Carousel ({{ decks[p.id] }})</a>
+        {% endif %}
       {% endif %}
     </td>
   </tr>

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable
 
+from .. import progress
 from ..store import connect
 from ..store.items import get_item
 from ..store.pins import unpin_item
@@ -87,6 +88,7 @@ def run_generate(
             title = item.get("title", "")
 
             logger.info("generating [%d/%d]: %s", idx, total, title)
+            progress.step(idx, total, title)
             if on_progress:
                 on_progress("start", idx, total, title, None)
             try:

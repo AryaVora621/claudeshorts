@@ -11,10 +11,34 @@ import base64
 import json
 import mimetypes
 import subprocess
+import threading
 from pathlib import Path
 from typing import Any
 
+from .. import progress
 from ..config import RENDERER_DIR, RENDERS_DIR, ROOT, ensure_dirs, settings
+
+
+def _handle_stderr_line(line: str, errors: list[str]) -> None:
+    """Translate one renderer stderr line into a progress update.
+
+    The renderer prints ``@@PROGRESS cur total label`` per batch of frames and
+    ``@@STATUS label`` for indeterminate stages. Everything else is real stderr
+    output, kept so a failure can be reported. Parsing runs on the caller's
+    thread so the per-thread progress sink (installed by the dashboard job) is in
+    scope.
+    """
+    if line.startswith("@@PROGRESS "):
+        parts = line.split(" ", 3)
+        try:
+            cur, total = int(parts[1]), int(parts[2])
+        except (IndexError, ValueError):
+            return
+        progress.step(cur, total, parts[3] if len(parts) > 3 else "rendering")
+    elif line.startswith("@@STATUS "):
+        progress.step(0, 0, line[len("@@STATUS "):].strip() or "rendering")
+    elif line.strip():
+        errors.append(line)
 
 
 def _logo_data_uri(logo_rel: str | None) -> str | None:
@@ -64,13 +88,35 @@ def render_post(post: dict, out_dir: Path | None = None) -> dict[str, Any]:
     spec_path = out_dir / "spec.json"
     spec_path.write_text(json.dumps(spec), encoding="utf-8")
 
-    proc = subprocess.run(
+    proc = subprocess.Popen(
         ["node", "render.mjs", "--spec", str(spec_path), "--out", str(out_dir)],
-        cwd=RENDERER_DIR, capture_output=True, text=True,
+        cwd=RENDERER_DIR, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
     )
+
+    # Drain stdout on a side thread (it carries only the final result JSON) while
+    # this thread parses stderr live for progress. Reading both avoids a pipe
+    # deadlock on a chatty render.
+    stdout_chunks: list[str] = []
+
+    def _drain_stdout() -> None:
+        assert proc.stdout is not None
+        stdout_chunks.append(proc.stdout.read())
+
+    t = threading.Thread(target=_drain_stdout, daemon=True)
+    t.start()
+
+    errors: list[str] = []
+    assert proc.stderr is not None
+    for raw in proc.stderr:
+        _handle_stderr_line(raw.rstrip("\n"), errors)
+
+    proc.wait()
+    t.join()
+    stdout = "".join(stdout_chunks)
+
     if proc.returncode != 0:
         raise RuntimeError(
-            "renderer failed: " + (proc.stderr.strip() or proc.stdout.strip())
+            "renderer failed: " + ("\n".join(errors).strip() or stdout.strip())
         )
-    last_line = proc.stdout.strip().splitlines()[-1]
+    last_line = stdout.strip().splitlines()[-1]
     return json.loads(last_line)

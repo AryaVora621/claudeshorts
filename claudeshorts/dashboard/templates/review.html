@@ -15,6 +15,14 @@
   <div>
     <video controls preload="metadata" poster="/media/{{ p.id }}/thumb.png">
       <source src="/media/{{ p.id }}/video.mp4" type="video/mp4"></video>
+    {% if decks[p.id] %}
+      <p class="deck-label">Carousel deck · {{ decks[p.id]|length }} slides
+        · <a href="/posts/{{ p.id }}/carousel">open large</a></p>
+      {% set pid = p.id %}
+      {% set slides = decks[p.id] %}
+      {% set variant = "inline" %}
+      {% include "_carousel.html" %}
+    {% endif %}
   </div>
   <div>
     <p class="title">{{ p.title }}</p>
@@ -40,4 +48,8 @@
   </div>
 </div>
 {% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/carousel.js"></script>
 {% endblock %}

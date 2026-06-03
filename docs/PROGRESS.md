@@ -16,6 +16,29 @@ the desktop (blocked in this container); all logic is verified here.
 
 ## ▶ Resume here (session handoff — 2026-06-01)
 
+### Carousel deck now visible in the dashboard (2026-06-02)
+
+The carousel was *exported* (slide stills shipped to `publish/<platform>/`) but
+never *shown* in the dashboard — the `/media` route refused anything but
+`video.mp4`/`thumb.png` and no template rendered the deck. Now finished:
+
+- `dashboard/app.py` — `/media/{id}/{name:path}` also serves
+  `slides/slide_NN.png` (strict `_SLIDE_RE`, so the path-joined lookup can't be
+  used for traversal); `_media_path` also falls back to the raw render dir. New
+  `GET /posts/{id}/carousel` full-size deck page. Review + Posts routes now pass
+  the per-post deck (filenames / count).
+- `review/queue.py::carousel_slides(post_id)` — lists a post's deck stills
+  (review bundle first, then render dir).
+- UI: `templates/_carousel.html` (reusable swipeable deck), `carousel.html`
+  (standalone page), deck embedded under the video in `review.html`, "Carousel
+  (N)" link in `posts.html`, `base.html` gained a `scripts` block.
+  `static/carousel.js` drives prev/next + click-drag + arrow keys + a live
+  counter over a CSS scroll-snap track. CSS added to `static/app.css`.
+- Verified live (Playwright + TestClient): inline deck on Review cards and the
+  full-size `/posts/10/carousel` both render; next advances exactly one slide
+  (scrollLeft 0->428, counter 1->2 of 5); slide PNGs serve real bytes; traversal
+  and missing-slide both 404. Posts 4/5/10/11/12 have decks on disk.
+
 ### Batch generation up to 20 (2026-06-02)
 
 `generate/runner.py::run_generate` now clamps to `MAX_BATCH=20` and generates

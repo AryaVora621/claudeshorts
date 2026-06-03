@@ -112,6 +112,12 @@ async function main() {
     await page.screenshot({
       path: join(framesDir, `frame_${String(f + 1).padStart(5, "0")}.png`),
     });
+    // Progress for any watching parent (the Python bridge parses these from
+    // stderr to drive the dashboard bar). Throttled so it stays cheap; stdout
+    // is reserved for the final result JSON.
+    if ((f + 1) % 5 === 0 || f + 1 === tl.frames.length) {
+      process.stderr.write(`@@PROGRESS ${f + 1} ${tl.frames.length} capturing frames\n`);
+    }
   }
 
   // --- 3b. per-slide settled stills (swipeable carousel) -----------------
@@ -123,6 +129,7 @@ async function main() {
   await rm(slidesDir, { recursive: true, force: true });
   await mkdir(slidesDir, { recursive: true });
   const slideStills = [];
+  process.stderr.write(`@@STATUS capturing carousel stills\n`);
   for (let i = 0; i < slides.length; i++) {
     const settledMs = Math.max(0, perSlide[i] * 1000 - 1000 / fps);
     const globalMs = tl.slideStartsMs[i] + settledMs;
@@ -136,6 +143,7 @@ async function main() {
   await browser.close();
 
   // --- 4. encode silent video + thumbnail --------------------------------
+  process.stderr.write(`@@STATUS encoding video\n`);
   const silent = join(outDir, "video_silent.mp4");
   await ff(encodeArgs(join(framesDir, "frame_%05d.png"), fps, silent));
   const thumb = join(outDir, "thumb.png");

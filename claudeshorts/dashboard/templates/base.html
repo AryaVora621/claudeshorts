@@ -10,6 +10,7 @@
   <nav class="side">
     <div class="brand">🌙 {{ channel }}</div>
     <a href="/" class="{{ 'on' if active=='overview' }}">Overview</a>
+    <a href="/jobs" class="{{ 'on' if active=='jobs' }}">Jobs</a>
     <a href="/review" class="{{ 'on' if active=='review' }}">Review queue</a>
     <a href="/articles" class="{{ 'on' if active=='articles' }}">Articles</a>
     <a href="/posts" class="{{ 'on' if active=='posts' }}">Posts</a>
@@ -23,5 +24,6 @@
     {% if err %}<div class="flash err">{{ err }}</div>{% endif %}
     {% block body %}{% endblock %}
   </main>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

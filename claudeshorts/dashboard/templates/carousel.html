@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Carousel · post {{ post.id }}{% endblock %}
+{% block body %}
+<h1>Carousel deck</h1>
+<p class="sub">Post {{ post.id }} · {{ post.title or '(untitled)' }}
+  · <a href="/posts">back to posts</a></p>
+
+{% if not slides %}
+  <p class="empty">No carousel deck for this post. It predates carousel rendering
+    or hasn't been rendered yet. Render it from <a href="/posts">Posts</a>.</p>
+{% else %}
+  <div class="deck-stage">
+    {% set pid = post.id %}
+    {% include "_carousel.html" %}
+  </div>
+  <p class="muted" style="margin-top:14px">{{ slides|length }} slides · swipe, drag,
+    or use ‹ › / arrow keys. These ship to <code>publish/&lt;platform&gt;/</code>
+    as a swipeable Instagram/TikTok deck alongside the video.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/carousel.js"></script>
+{% endblock %}

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from .. import progress
 from ..config import settings
 from ..config import sources as load_sources
 from ..store import connect
@@ -51,9 +52,13 @@ def run_ingest(since: str | None = None, limit: int | None = None) -> dict[str, 
         "by_source": {},
     }
 
+    all_sources = list(load_sources())
+    total_sources = len(all_sources)
+
     with connect() as conn:
-        for source in load_sources():
+        for i, source in enumerate(all_sources, 1):
             name = source.get("name", "?")
+            progress.step(i, total_sources, f"fetching {name}")
             per = {"fetched": 0, "stored": 0}
             try:
                 items = fetch_source(source, per_source)

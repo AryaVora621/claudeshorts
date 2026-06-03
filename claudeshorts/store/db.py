@@ -81,6 +81,27 @@ CREATE TABLE IF NOT EXISTS pins (
     note       TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- jobs: a durable mirror of the dashboard's in-process background jobs (ingest /
+-- generate / render / full run). Jobs still run in memory and stream live; this
+-- table just persists a snapshot so the operator can click back onto past runs
+-- after a server restart. `progress_total` 0 means an indeterminate bar.
+CREATE TABLE IF NOT EXISTS jobs (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    name             TEXT    NOT NULL,
+    status           TEXT    NOT NULL DEFAULT 'running',  -- running|ok|error|interrupted
+    phase_index      INTEGER NOT NULL DEFAULT 0,
+    phase_total      INTEGER NOT NULL DEFAULT 0,
+    phase_label      TEXT    NOT NULL DEFAULT '',
+    progress_current INTEGER NOT NULL DEFAULT 0,
+    progress_total   INTEGER NOT NULL DEFAULT 0,
+    progress_label   TEXT    NOT NULL DEFAULT '',
+    log              TEXT    NOT NULL DEFAULT '',
+    error            TEXT,
+    started_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+    finished_at      TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_jobs_id ON jobs(id);
 """
 
 

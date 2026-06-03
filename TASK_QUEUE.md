@@ -7,14 +7,25 @@
 - DEPRIORITIZED — cross-outlet duplicate stories: "some duplicates are fine"
   (user). Investigation notes in CHECKPOINT_LAST.md (IDF-weighted shared-token
   approach; RTX-Spark false-merge risk). Revisit only if it becomes annoying.
-- Optional: surface the carousel deck in the dashboard review page (preview).
 - Optional: parallelize batch generation (run a few claude CLI calls at once).
 - Optional: Reddit OAuth so the disabled reddit sources work again.
 
 ## In-Progress
-- None.
+- [IN_PROGRESS Claude/Opus] Live jobs dashboard: percent bars (phase + per-item),
+  clickable job history that survives restarts (new `jobs` SQLite table),
+  embedded live terminal in the dashboard. Frontend + read-only progress
+  instrumentation only (no stop/cancel, no change to what jobs do). See PLAN.md.
 
 ## Done
+- Carousel deck preview in the dashboard: slide stills now show on the dashboard.
+  `/media/{id}/slides/slide_NN.png` serves the stills (path-validated; traversal
+  blocked), `review/queue.py::carousel_slides` lists a post's deck, the Review
+  card shows a swipeable deck under the video, a new `/posts/{id}/carousel` page
+  shows it full-size, and the Posts table links "Carousel (N)". New
+  `templates/_carousel.html` + `carousel.html`, `static/carousel.js` (buttons +
+  drag + arrow keys + live counter), CSS. Verified live (Playwright): inline +
+  standalone render, next advances exactly one slide (0->428px, counter 1->2),
+  real PNG bytes served, traversal/missing-slide -> 404.
 - Batch generation (up to 20): `run_generate` clamps to 1-20, generates each
   post independently (one failure is logged + skipped, batch continues), and
   emits per-item progress. `cli generate` draws a live `rich` bar (spinner +
