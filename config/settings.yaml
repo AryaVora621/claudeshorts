@@ -29,6 +29,12 @@ video:
   reading_speed_wpm: 200       # assumed comfortable on-screen reading speed
   read_lead_seconds: 0.8       # entrance-animation settle before reading starts
   max_seconds_per_slide: 8.0   # cap so one dense slide can't run away
+  # A pre-made outro image appended to the end of every video and as the final
+  # carousel swipe. Auto-detected from assets/ (e.g. EndingSlide.png / outro.png)
+  # when `endslide` is unset; set a path here to pin a specific file, or "" to
+  # disable. endslide_seconds is how long it holds on screen.
+  # endslide: assets/EndingSlide.png
+  endslide_seconds: 2.5
 
 # Audio for rendered videos (Phase 3).
 audio:

@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import json
 import mimetypes
+import re
 import subprocess
 import threading
 from pathlib import Path
@@ -52,6 +53,34 @@ def _logo_data_uri(logo_rel: str | None) -> str | None:
     return f"data:{mime};base64,{data}"
 
 
+_ENDSLIDE_KEYS = ("endslide", "endingslide", "outro", "ending")
+
+
+def _endslide_path(cfg: dict) -> str | None:
+    """Absolute path to the outro image appended to the video + carousel, or None.
+
+    Honors ``video.endslide`` in settings (a repo-relative path, or "" to
+    disable). When unset, auto-detect a file in ``assets/`` whose name reads like
+    an ending slide (e.g. ``EndingSlide.png``, ``outro.png``). An absolute path is
+    returned so the Node renderer can read it regardless of its working dir.
+    """
+    video = cfg.get("video", {}) or {}
+    if "endslide" in video:  # explicit setting (path, or "" to disable)
+        rel = (video.get("endslide") or "").strip()
+        if not rel:
+            return None
+        p = ROOT / rel
+        return str(p) if p.exists() else None
+
+    assets = ROOT / "assets"
+    if assets.is_dir():
+        for cand in sorted(assets.glob("*.png")):
+            key = re.sub(r"[^a-z0-9]", "", cand.stem.lower())
+            if any(k in key for k in _ENDSLIDE_KEYS):
+                return str(cand)
+    return None
+
+
 def build_spec(post: dict) -> dict[str, Any]:
     """Construct the renderer spec from a post row + settings."""
     cfg = settings()
@@ -74,6 +103,7 @@ def build_spec(post: dict) -> dict[str, Any]:
         "slides": post.get("slides") or [],
         "channel": channel,
         "video": cfg.get("video", {}),
+        "endslide": _endslide_path(cfg),
         "audio": audio,
     }
 

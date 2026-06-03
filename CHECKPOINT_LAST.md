@@ -37,13 +37,26 @@ and verified live with Playwright. Nothing committed yet.
 - `node --check carousel.js` passed. Test artifacts (screenshots, .playwright-mcp)
   cleaned; test server stopped.
 
+## Also this session: auto-included ending slide
+The carousel + jobs dashboard work was committed as `ecdc095`. Then added an
+auto-included outro slide (committed separately — see git log):
+- `assets/EndingSlide.png` (941x1672 source) is normalized to 1080x1920 and
+  appended to every video (held `video.endslide_seconds`, default 2.5s) AND as
+  the final carousel still.
+- `render/bridge.py::_endslide_path` auto-detects an outro image in `assets/`
+  (or honors settings `video.endslide`; `""` disables) and passes an absolute
+  path in the render spec. `renderer/render.mjs` normalizes it, extends the
+  timeline by one trailing "slide" (keeps audio in sync), fills those frames
+  from the image, and copies it as the last `slides/slide_NN.png`.
+- Verified live (post 10, real Chromium+ffmpeg): 40.0s->42.5s, +75 frames, last
+  video frame = the outro, deck 5->6 stills (slide_06 = branded outro).
+
 ## NEXT (resume here)
-1. Optional: review the full working-tree diff, then commit on this branch
-   (user must approve a commit; do not push to main). The live jobs dashboard
-   from the prior session is also still uncommitted in this tree.
-2. Still open from before: test the branch on the HOME SERVER end to end, then
+1. Still open from before: test the branch on the HOME SERVER end to end, then
    open a PR / merge to main.
+2. Re-render existing posts if you want the new outro on already-rendered decks
+   (only post 10 was re-rendered, to a temp dir; the committed renders are
+   unchanged).
 
 ## Human decisions needed
-- Commit this (and the prior live-jobs-dashboard work) on
-  `feature/carousel-wider-topics`, or split into separate commits/branch?
+- None outstanding. PR/merge timing is the user's call.

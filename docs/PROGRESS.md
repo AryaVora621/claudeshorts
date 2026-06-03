@@ -16,6 +16,19 @@ the desktop (blocked in this container); all logic is verified here.
 
 ## ▶ Resume here (session handoff — 2026-06-01)
 
+### Auto-included ending slide (2026-06-02)
+
+Every render now ends on a pre-made outro image. `render/bridge.py::_endslide_path`
+resolves it from settings `video.endslide` (repo-relative path; `""` disables) or
+auto-detects an `assets/*.png` named like an outro (`EndingSlide.png`, `outro.png`,
+…) and passes an absolute path in the spec. `renderer/render.mjs` normalizes it to
+`width×height` (scale-to-cover + crop) once, appends it as a trailing timed
+"slide" of `video.endslide_seconds` (default 2.5s) so the audio track and totals
+stay in sync, fills those frames from the static image (no template render), and
+copies it as the final `slides/slide_NN.png` so the swipe deck closes on the same
+outro. Verified live (post 10, real Chromium+ffmpeg): 40.0s→42.5s, last video
+frame is the outro, deck 5→6 stills.
+
 ### Carousel deck now visible in the dashboard (2026-06-02)
 
 The carousel was *exported* (slide stills shipped to `publish/<platform>/`) but

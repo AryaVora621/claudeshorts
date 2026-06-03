@@ -7,7 +7,7 @@
 // The spec is produced by the Python bridge (claudeshorts/render/bridge.py).
 
 import { execFile, spawn } from "node:child_process";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -67,6 +67,21 @@ async function main() {
   await rm(framesDir, { recursive: true, force: true });
   await mkdir(framesDir, { recursive: true });
 
+  // --- 0. optional ending slide (static outro image) ---------------------
+  // A pre-made outro (e.g. assets/EndingSlide.png) appended to the end of the
+  // video and as the final carousel swipe. Normalized once to the exact frame
+  // size so it drops straight into the frame sequence and the deck.
+  let endslideFrame = null;
+  if (spec.endslide && existsSync(spec.endslide)) {
+    endslideFrame = join(framesDir, "endslide.png");
+    await ff([
+      "-y", "-i", spec.endslide, "-vf",
+      `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}`,
+      "-frames:v", "1", endslideFrame,
+    ]);
+  }
+  const endslideSec = endslideFrame ? (v.endslide_seconds ?? 2.5) : 0;
+
   // --- 1. optional TTS narration (per slide) -----------------------------
   let narration = null; // {clips:[{path,startMs}], perSlideSec:[]}
   if (audio.mode === "tts" && audio.tts && audio.tts.command) {
@@ -94,7 +109,10 @@ async function main() {
     audioSeconds: narration ? narration.perSlideSec : null,
     padSeconds: narration ? narration.pad : 0.6,
   });
-  const tl = buildTimeline(perSlide, fps);
+  // Append the endslide as one more timed "slide" so the audio track and totals
+  // include its hold and stay in sync with the extra video frames.
+  const durations = endslideFrame ? [...perSlide, endslideSec] : perSlide;
+  const tl = buildTimeline(durations, fps);
   if (narration) {
     narration.clips.forEach((c, i) => { c.startMs = tl.slideStartsMs[i]; });
   }
@@ -106,12 +124,17 @@ async function main() {
   await page.evaluate((s) => window.__init(s), spec);
   for (let f = 0; f < tl.frames.length; f++) {
     const fr = tl.frames[f];
-    const globalMs = tl.slideStartsMs[fr.slide] + fr.localMs;
-    await page.evaluate(([i, localMs, gMs]) => window.__render(i, localMs, gMs),
-      [fr.slide, fr.localMs, globalMs]);
-    await page.screenshot({
-      path: join(framesDir, `frame_${String(f + 1).padStart(5, "0")}.png`),
-    });
+    const framePath = join(framesDir, `frame_${String(f + 1).padStart(5, "0")}.png`);
+    if (endslideFrame && fr.slide >= slides.length) {
+      // The trailing endslide "slide" is the static outro image, not a template
+      // render, so reuse its normalized frame for the whole hold.
+      await copyFile(endslideFrame, framePath);
+    } else {
+      const globalMs = tl.slideStartsMs[fr.slide] + fr.localMs;
+      await page.evaluate(([i, localMs, gMs]) => window.__render(i, localMs, gMs),
+        [fr.slide, fr.localMs, globalMs]);
+      await page.screenshot({ path: framePath });
+    }
     // Progress for any watching parent (the Python bridge parses these from
     // stderr to drive the dashboard bar). Throttled so it stays cheap; stdout
     // is reserved for the final result JSON.
@@ -137,6 +160,12 @@ async function main() {
       [i, settledMs, globalMs]);
     const stillPath = join(slidesDir, `slide_${String(i + 1).padStart(2, "0")}.png`);
     await page.screenshot({ path: stillPath });
+    slideStills.push(stillPath);
+  }
+  if (endslideFrame) {
+    // Close the swipe deck with the same outro the video ends on.
+    const stillPath = join(slidesDir, `slide_${String(slides.length + 1).padStart(2, "0")}.png`);
+    await copyFile(endslideFrame, stillPath);
     slideStills.push(stillPath);
   }
 

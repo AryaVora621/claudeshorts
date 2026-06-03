@@ -17,6 +17,13 @@
   instrumentation only (no stop/cancel, no change to what jobs do). See PLAN.md.
 
 ## Done
+- Auto-included ending slide: a pre-made outro image (auto-detected from
+  `assets/`, e.g. `EndingSlide.png`; override via settings `video.endslide`) is
+  normalized to 1080x1920 and appended both to the end of every video (held
+  `video.endslide_seconds`, default 2.5s) and as the final carousel swipe. The
+  timeline is extended so the audio track stays in sync. Verified on post 10:
+  40.0s -> 42.5s video that ends on the outro frame; deck grew 5 -> 6 stills with
+  the branded outro last. (`render/bridge.py::_endslide_path`, `renderer/render.mjs`.)
 - Carousel deck preview in the dashboard: slide stills now show on the dashboard.
   `/media/{id}/slides/slide_NN.png` serves the stills (path-validated; traversal
   blocked), `review/queue.py::carousel_slides` lists a post's deck, the Review
