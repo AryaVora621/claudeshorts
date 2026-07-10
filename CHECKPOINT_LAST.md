@@ -1,8 +1,25 @@
-# CHECKPOINT / RESUME REPORT - 2026-07-10 (goal.md platform rebuild — planning phase)
+# CHECKPOINT / RESUME REPORT - 2026-07-10 (goal.md platform rebuild — planning phase, update 2)
 
 Agent: Claude (Sonnet 5), branch `feature/carousel-wider-topics`.
 
-## Status: 6 of 14 chunks fully speced + planned (docs only, no implementation yet)
+## Status: 10 of 14 chunks fully speced + planned (docs only, no implementation yet)
+
+Chunks 7-10 landed since the last checkpoint entry below:
+7. LLM provider abstraction — `docs/superpowers/specs/2026-07-10-chunk7-llm-provider-design.md` + plan (`LLMProvider` Protocol; `claude_cli`/`api` moved verbatim; one `OpenAICompatibleProvider` class registered twice as `local`/`openai_compat`, covering Ollama/LM Studio/vLLM and OpenRouter/NVIDIA/Gemini/OpenAI without per-vendor code)
+8. More video/renderer styles — `docs/superpowers/specs/2026-07-10-chunk8-video-styles-design.md` + plan (deterministic brand-color pinning by topic keyword — e.g. green for Nvidia, orange for Anthropic — plus 2 new layout templates, `editorial` and `breaking`, alongside today's `slideshow`; layout choice is config-driven keyword rules, not a new LLM field)
+9. Remotion research note (chunk originally called "Contexto" — a mishearing the user corrected to Remotion) — `docs/superpowers/specs/2026-07-10-chunk9-remotion-research-note.md`; recommendation: do not migrate the current Playwright+FFmpeg renderer to Remotion now, no clear win and real migration cost; revisit only if a concrete pain point shows up
+10. Publishing plugins + multi-channel posting — `docs/superpowers/specs/2026-07-10-chunk10-publishing-plugins-design.md` + plan (`PublishProvider` Protocol; `FolderExportProvider` = today's assisted export, channel-scoped; 3 credential-gated API stub providers for YouTube/TikTok/Instagram, real network calls deferred to a final human-required task; full multi-channel data model built now — `channels` table, `posts.channel_id`, deterministic `select_channel` routing — even though only 1 channel exists today)
+
+**Real gap found while planning chunk 10:** this repo has **no `tests/`
+directory at all** yet — every prior chunk's plan (1-9) that said "extend
+existing test file X" was actually describing a file that doesn't exist.
+Not a blocker (TDD steps create new files regardless), but whoever
+executes chunk 1's plan first will need to also create `tests/conftest.py`
+with a DB fixture — chunk 10's plan does this defensively (checks for it,
+creates if absent) and future chunk plans should do the same rather than
+assuming it exists.
+
+## Status (original entry): 6 of 14 chunks fully speced + planned (docs only, no implementation yet)
 
 User's goal.md describes a full platform rebuild (plugin providers, job
 queue, service layer, REST API, Telegram bot, scheduling, multi-channel
@@ -31,11 +48,9 @@ keep this loop going; each firing should pick up the next pending chunk.
 5. Scheduling engine — `docs/superpowers/specs/2026-07-10-chunk5-scheduling-engine-design.md` + plan (self-contained recurring scheduler; weekly report has an honest "pending Playwright analytics" placeholder, real cross-platform engagement deferred to chunk 11 per user's choice of Playwright scraping over platform APIs)
 6. Structured logging overhaul — `docs/superpowers/specs/2026-07-10-chunk6-structured-logging-design.md` + plan
 
-### Next action
-Chunk 7: LLM provider abstraction (interface only — Claude stays the only
-wired backend, others are stubs pending API keys). Then chunks 8-9 (more
-video styles, Contexto note), then deferred chunks 10-14 (publishing
-plugins, browser profiles + Playwright analytics, Telegram bot,
+### Next action (superseded — see chunks 7-10 note above)
+Chunk 11: browser-automation profile system + Playwright-based analytics
+scraper (feeds chunk 5's weekly report). Then chunks 12-14 (Telegram bot,
 Higgsfield/Veo, additional LLM keys) — these need API keys/logins from the
 user, per their explicit "leave human-required tasks for last" instruction.
 

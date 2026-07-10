@@ -2,11 +2,11 @@
 
 ## Open
 - **goal.md platform rebuild** (in progress): 14-chunk plan, human-required
-  chunks deferred to the end. Chunks 1-4 (Supabase migration, job queue,
-  service layer, REST API) have committed spec+plan docs under
-  `docs/superpowers/specs/` and `docs/superpowers/plans/` but are NOT YET
-  IMPLEMENTED — current phase is planning only per user's /goal directive.
-  Next: chunk 5 (scheduling engine). Full detail in `CHECKPOINT_LAST.md`.
+  chunks deferred to the end. Chunks 1-10 have committed spec+plan docs
+  under `docs/superpowers/specs/` and `docs/superpowers/plans/` but are
+  NOT YET IMPLEMENTED — current phase is planning only per user's /goal
+  directive. Next: chunk 11 (browser-automation profiles + Playwright
+  analytics). Full detail in `CHECKPOINT_LAST.md`.
   New Supabase project `claudeshorts` (nddlutmilajkqtoygmfi) created for
   this; `adhdsat` project paused as part of the same decision.
 - BLOCKED on hardware: test the branch on the HOME SERVER (aiserver desktop,
