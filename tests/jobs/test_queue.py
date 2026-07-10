@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta, datetime, timezone, timedelta
+from datetime import timedelta, datetime, timezone
 
 from claudeshorts.jobs import queue
 from claudeshorts.store import db
@@ -40,3 +40,9 @@ def test_claim_next_ignores_future_next_attempt_at():
             (datetime.now(timezone.utc) + timedelta(hours=1), job_id),
         )
     assert queue.claim_next("worker-1") is None
+
+
+def test_claim_next_returns_fresh_locked_at():
+    queue.enqueue("ingest", {}, name="ingest")
+    claimed = queue.claim_next("worker-1")
+    assert claimed["locked_at"] is not None

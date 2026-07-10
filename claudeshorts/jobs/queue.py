@@ -32,7 +32,7 @@ def enqueue(
     max_attempts: int | None = None,
 ) -> int:
     """Add a job to the queue in PENDING state. Returns the new job id."""
-    attempts_cap = max_attempts or _jobs_cfg().get("max_attempts", 3)
+    attempts_cap = max_attempts if max_attempts is not None else _jobs_cfg().get("max_attempts", 3)
     with db.connect() as conn:
         row = conn.execute(
             "INSERT INTO jobs (name, job_type, payload, max_attempts) "
@@ -52,12 +52,9 @@ def claim_next(worker_id: str) -> dict[str, Any] | None:
         ).fetchone()
         if row is None:
             return None
-        conn.execute(
+        row = conn.execute(
             "UPDATE jobs SET status = 'RUNNING', locked_by = %s, "
-            "locked_at = now() WHERE id = %s",
+            "locked_at = now() WHERE id = %s RETURNING *",
             (worker_id, row["id"]),
-        )
-        row = dict(row)
-        row["status"] = "RUNNING"
-        row["locked_by"] = worker_id
-        return row
+        ).fetchone()
+        return dict(row)
