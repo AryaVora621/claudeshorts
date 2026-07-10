@@ -11,7 +11,7 @@ def test_all_six_job_types_registered():
 
 
 def test_generate_from_item_unpacks_payload():
-    with patch("claudeshorts.generate.generate_for_item") as mock_fn:
+    with patch("claudeshorts.services.pipeline_service.generate_for_item") as mock_fn:
         mock_fn.return_value = {"post_id": 5}
         result = registry.JOB_HANDLERS["generate_from_item"]({"item_id": 5})
         mock_fn.assert_called_once_with(5)
@@ -19,7 +19,7 @@ def test_generate_from_item_unpacks_payload():
 
 
 def test_render_post_unpacks_payload():
-    with patch("claudeshorts.jobs.registry._render_post_by_id") as mock_fn:
+    with patch("claudeshorts.services.pipeline_service.render_post_service") as mock_fn:
         mock_fn.return_value = "rendered post 7: 40 frames"
         result = registry.JOB_HANDLERS["render_post"]({"post_id": 7})
         mock_fn.assert_called_once_with(7)
