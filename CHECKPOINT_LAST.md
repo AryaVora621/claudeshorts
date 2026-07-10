@@ -1,3 +1,31 @@
+# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1+2 CODE-COMPLETE)
+
+Agent: Claude (Fable 5), branch `feature/platform-rebuild`. SDD ledger:
+`.superpowers/sdd/progress.md`.
+
+## Chunk 2 (job queue + state machine): DONE, reviewed, verified live
+- jobs table extended (queue columns via additive ALTERs; status vocab now
+  uppercase state machine, historical lowercase rows still displayed).
+- New `claudeshorts/jobs/` package: queue.py (enqueue/claim_next via FOR
+  UPDATE SKIP LOCKED/complete/fail+backoff/cancel/pause/resume/cancel_claimed),
+  registry.py (5 job types → pipeline calls, lazy imports), worker.py
+  (polling daemon; started at dashboard startup).
+- dashboard/jobs.py rewritten: enqueue + DB-polling SSE (same wire protocol);
+  6 app.py call sites rewired; frontend status handling made
+  vocabulary-aware (jobs.js/app.css/job.html).
+- Review loop caught + fixed real bugs beyond the plan: stale locked_at,
+  max_attempts=0 override, request_cancel clobbering terminal jobs, worker
+  stranding cancel-flagged claimed jobs in RUNNING, stuck progress bars.
+- Live e2e: real ingest job enqueued via HTTP → COMPLETED through the
+  worker; SSE progress/done events observed. Full suite 55/55.
+- Commits a73e3d6..1811369.
+
+## Next action
+Chunk 3 (service layer extraction) via the same SDD loop; then 4-8.
+Human-required items unchanged (see chunk 1 entry below + TASK_QUEUE.md).
+
+---
+
 # CHECKPOINT / RESUME REPORT - 2026-07-10 (implementation session — chunk 1 CODE-COMPLETE)
 
 Agent: Claude (Fable 5), branch `feature/platform-rebuild` (created off
