@@ -1,8 +1,35 @@
-# CHECKPOINT / RESUME REPORT - 2026-07-10 (goal.md platform rebuild — PLANNING COMPLETE, 14/14)
+# CHECKPOINT / RESUME REPORT - 2026-07-10 (goal.md platform rebuild — PLANNING COMPLETE, 14/14, handoff to dynamic workflows)
 
 Agent: Claude (Sonnet 5), branch `feature/carousel-wider-topics`.
 
 ## Status: ALL 14 chunks speced + planned. Zero code implemented yet.
+## The 10m `/loop` cron has been CANCELLED (confirmed via CronList: no
+## scheduled jobs remain). The user is clearing context and setting up
+## dynamic workflows to begin implementing the humanless parts (chunks 1-9,
+## which have no human-required blockers) — this checkpoint is the handoff
+## document for that fresh session.
+
+### Chunk 13 addendum (2026-07-10, same day): Google AI Pro / Veo
+The user has a **Google AI Pro** subscription ($20/mo) and asked if it
+already covers Veo access. Researched and updated
+`docs/superpowers/specs/2026-07-10-chunk13-higgsfield-veo-research-note.md`
+with the finding: **Pro's Veo access is an app/UI quota (Gemini app: ~3
+Veo 3 Fast gens/day; Google Flow web app: ~1,000 monthly AI credits),
+NOT free Vertex AI API credit** — the pay-per-second API pricing
+($0.15-0.40/sec) still applies regardless of the subscription; the
+subscription's quota only works through Google's own Flow/Gemini web UIs.
+**The actionable insight:** chunk 11's browser-profile automation pattern
+(Playwright + a logged-in session, already designed to drive YouTube
+Studio's upload flow) could equally drive `labs.google/fx/tools/flow`
+to generate clips using the subscription's included quota at zero
+marginal cost — third-party precedent for batch-automating Flow via
+browser extensions was found during this research, confirming viability.
+This doesn't solve full-volume generation (quota caps around 3-5
+clips/day on Pro, ~100/month via Flow credits on Ultra, versus
+`posts_per_day: 3` x ~5 slides needing ~450/month) but comfortably covers
+an opt-in "one hero clip per top post" usage pattern. **Not built yet** —
+still a "when you're ready to proceed" item, now with a cheaper first
+option identified (`flow_browser` provider before `veo_api`/Vertex AI).
 
 Chunks 11-14 landed since the "update 2" entry below:
 11. Browser-automation profile system — `docs/superpowers/specs/2026-07-10-chunk11-browser-profiles-design.md` + plan (profile metadata in `config/profiles/*.yaml`, session state gitignored under `/profiles/`; goal.md's no-sleep/resilient-selector/mandatory-failure-capture rules built into `browser/wait.py`/`errors.py`; Playwright analytics scraper fills chunk 5's "pending" placeholder; a 4th `PublishProvider`, `browser_profile`, added to chunk 10's registry — YouTube Studio's upload flow fully implemented as the reference, TikTok/Instagram left as real-but-calibration-pending stubs)
@@ -15,11 +42,12 @@ Every chunk has a committed spec (`docs/superpowers/specs/2026-07-10-chunk*`)
 and, except chunks 9/13 (explicitly research-only by design), a committed
 TDD implementation plan (`docs/superpowers/plans/2026-07-10-chunk*`).
 **No code has been implemented for any chunk yet** — this was a planning-
-only phase per the standing `/goal` directive. The `/loop 10m continue
-working` cron is still active; the next firing should either wait for the
-user's explicit go-ahead to start implementing, or (if the user wants the
-loop to keep finding useful work) pick up chunks 1-9 for actual
-implementation, since those have no human-required blockers.
+only phase per the standing `/goal` directive. **The `/loop 10m continue
+working` cron has been cancelled** (user is moving to dynamic
+workflow-based implementation instead — see the top of this file for the
+handoff note). Chunks 1-9 have no human-required blockers and are ready
+to implement immediately; chunks 10-14 each have one explicit
+human-required final step (see below) but are otherwise fully planned.
 
 ### What's still genuinely human-required across the whole rebuild
 - Chunk 1: run the real Supabase migration (schema + data) end to end.
