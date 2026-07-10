@@ -106,3 +106,9 @@ select:
       - breach, hack, hacked, exploit, vulnerability, ransomware, leak, leaked
       - breakthrough, record, fastest, benchmark, outperforms, beats, first
       - layoffs, shutdown, recall, outage
+
+jobs:
+  max_attempts: 3
+  base_delay_seconds: 5
+  max_delay_seconds: 300
+  poll_interval_seconds: 1.0
