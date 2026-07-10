@@ -69,6 +69,16 @@ def create_app() -> FastAPI:
     app = FastAPI(title="claudeshorts dashboard")
     app.mount("/static", StaticFiles(directory=str(_HERE / "static")), name="static")
 
+    @app.on_event("startup")
+    def _start_job_worker() -> None:
+        import threading
+
+        from ..jobs.worker import run_forever
+
+        threading.Thread(
+            target=run_forever, args=("dashboard-worker",), daemon=True,
+        ).start()
+
     def page(request: Request, name: str, **ctx):
         ctx.setdefault("active", "")
         ctx["msg"] = request.query_params.get("msg")
@@ -100,14 +110,11 @@ def create_app() -> FastAPI:
     @app.post("/actions/{name}")
     def action(name: str):
         if name == "run":
-            from ..orchestrate import run_pipeline
-            jid = jobs.start_job("daily run", lambda: run_pipeline(force=True))
+            jid = jobs.enqueue_job("full_run", {}, "daily run")
         elif name == "ingest":
-            from ..ingest import run_ingest
-            jid = jobs.start_job("ingest", run_ingest)
+            jid = jobs.enqueue_job("ingest", {}, "ingest")
         elif name == "generate":
-            from ..generate import run_generate
-            jid = jobs.start_job("generate", lambda: run_generate())
+            jid = jobs.enqueue_job("generate", {}, "generate")
         else:
             return _redirect("/", err=f"unknown action {name}")
         return _redirect(f"/jobs/{jid}")
@@ -224,9 +231,8 @@ def create_app() -> FastAPI:
             conn.commit()
         action = f.get("action", "pin")
         if action == "generate":
-            from ..generate import generate_for_item
-            jid = jobs.start_job(f"generate from “{title[:40]}”",
-                                 lambda: generate_for_item(item_id))
+            jid = jobs.enqueue_job("generate_from_item", {"item_id": item_id},
+                                   f"generate from “{title[:40]}”")
             return _redirect(f"/jobs/{jid}")
         with connect() as conn:
             pin_item(conn, item_id)
@@ -236,10 +242,8 @@ def create_app() -> FastAPI:
 
     @app.post("/articles/{item_id}/generate")
     def articles_generate(item_id: int):
-        from ..generate import generate_for_item
-
-        jid = jobs.start_job(f"generate from item {item_id}",
-                             lambda: generate_for_item(item_id))
+        jid = jobs.enqueue_job("generate_from_item", {"item_id": item_id},
+                               f"generate from item {item_id}")
         return _redirect(f"/jobs/{jid}")
 
     @app.post("/articles/{item_id}/pin")
@@ -289,20 +293,8 @@ def create_app() -> FastAPI:
 
     @app.post("/posts/{post_id}/render")
     def post_render(post_id: int):
-        def _do():
-            from ..render import render_post
-            from ..review import assemble_review
-            from ..store import get_post
-
-            with connect() as conn:
-                post = get_post(conn, post_id)
-            if not post:
-                raise ValueError(f"no post {post_id}")
-            result = render_post(post)
-            assemble_review(post, result)
-            return f"rendered post {post_id}: {result.get('frames')} frames"
-
-        jid = jobs.start_job(f"render post {post_id}", _do)
+        jid = jobs.enqueue_job("render_post", {"post_id": post_id},
+                               f"render post {post_id}")
         return _redirect(f"/jobs/{jid}")
 
     @app.post("/posts/{post_id}/export")
