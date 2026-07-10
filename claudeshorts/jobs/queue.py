@@ -58,3 +58,68 @@ def claim_next(worker_id: str) -> dict[str, Any] | None:
             (worker_id, row["id"]),
         ).fetchone()
         return dict(row)
+
+
+def complete(job_id: int, result: str | None) -> None:
+    with db.connect() as conn:
+        conn.execute(
+            "UPDATE jobs SET status = 'COMPLETED', error = NULL, "
+            "finished_at = now(), log = log || %s WHERE id = %s",
+            (f"\n{result}" if result else "", job_id),
+        )
+
+
+def fail(job_id: int, error: str) -> None:
+    with db.connect() as conn:
+        row = conn.execute(
+            "UPDATE jobs SET attempts = attempts + 1 WHERE id = %s "
+            "RETURNING attempts, max_attempts",
+            (job_id,),
+        ).fetchone()
+        if row["attempts"] >= row["max_attempts"]:
+            conn.execute(
+                "UPDATE jobs SET status = 'FAILED', error = %s, "
+                "finished_at = now() WHERE id = %s",
+                (error, job_id),
+            )
+        else:
+            delay = backoff(row["attempts"])
+            conn.execute(
+                "UPDATE jobs SET status = 'RETRYING', error = %s, "
+                "next_attempt_at = now() + %s WHERE id = %s",
+                (error, delay, job_id),
+            )
+
+
+def request_cancel(job_id: int) -> None:
+    """Cancel a PENDING/RETRYING/PAUSED job immediately; flag a RUNNING one
+    so the worker discards its result on completion (see spec: queue-level
+    cancel only, no mid-execution interruption)."""
+    with db.connect() as conn:
+        conn.execute(
+            "UPDATE jobs SET status = CASE WHEN status = 'RUNNING' "
+            "THEN 'RUNNING' ELSE 'CANCELLED' END, "
+            "cancel_requested = true, "
+            "finished_at = CASE WHEN status != 'RUNNING' THEN now() "
+            "ELSE finished_at END "
+            "WHERE id = %s",
+            (job_id,),
+        )
+
+
+def request_pause(job_id: int) -> None:
+    with db.connect() as conn:
+        conn.execute(
+            "UPDATE jobs SET status = 'PAUSED', pause_requested = true "
+            "WHERE id = %s AND status IN ('PENDING', 'RETRYING')",
+            (job_id,),
+        )
+
+
+def resume(job_id: int) -> None:
+    with db.connect() as conn:
+        conn.execute(
+            "UPDATE jobs SET status = 'PENDING', pause_requested = false "
+            "WHERE id = %s AND status = 'PAUSED'",
+            (job_id,),
+        )

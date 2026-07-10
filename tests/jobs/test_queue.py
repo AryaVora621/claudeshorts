@@ -46,3 +46,50 @@ def test_claim_next_returns_fresh_locked_at():
     queue.enqueue("ingest", {}, name="ingest")
     claimed = queue.claim_next("worker-1")
     assert claimed["locked_at"] is not None
+
+
+def test_complete_marks_completed():
+    job_id = queue.enqueue("ingest", {}, name="ingest")
+    queue.claim_next("worker-1")
+    queue.complete(job_id, "42 items")
+    with db.connect() as conn:
+        row = conn.execute("SELECT * FROM jobs WHERE id = %s", (job_id,)).fetchone()
+    assert row["status"] == "COMPLETED"
+    assert row["error"] is None
+    assert row["finished_at"] is not None
+
+
+def test_fail_retries_until_max_attempts():
+    job_id = queue.enqueue("ingest", {}, name="ingest", max_attempts=2)
+    queue.claim_next("worker-1")
+    queue.fail(job_id, "boom 1")
+    with db.connect() as conn:
+        row = conn.execute("SELECT * FROM jobs WHERE id = %s", (job_id,)).fetchone()
+    assert row["status"] == "RETRYING"
+    assert row["attempts"] == 1
+
+    queue.claim_next("worker-1")
+    queue.fail(job_id, "boom 2")
+    with db.connect() as conn:
+        row = conn.execute("SELECT * FROM jobs WHERE id = %s", (job_id,)).fetchone()
+    assert row["status"] == "FAILED"
+    assert row["attempts"] == 2
+    assert row["error"] == "boom 2"
+
+
+def test_cancel_pending_job_removes_it_from_claim():
+    job_id = queue.enqueue("ingest", {}, name="ingest")
+    queue.request_cancel(job_id)
+    with db.connect() as conn:
+        row = conn.execute("SELECT * FROM jobs WHERE id = %s", (job_id,)).fetchone()
+    assert row["status"] == "CANCELLED"
+    assert queue.claim_next("worker-1") is None
+
+
+def test_pause_then_resume():
+    job_id = queue.enqueue("ingest", {}, name="ingest")
+    queue.request_pause(job_id)
+    assert queue.claim_next("worker-1") is None
+    queue.resume(job_id)
+    claimed = queue.claim_next("worker-1")
+    assert claimed["id"] == job_id
