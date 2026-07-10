@@ -48,3 +48,8 @@ env/
 .idea/
 .vscode/
 *.swp
+
+# local agent/tool artifacts
+.opencode/
+.serena/
+goal.md
