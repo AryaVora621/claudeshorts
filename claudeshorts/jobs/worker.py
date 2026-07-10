@@ -28,7 +28,7 @@ def dispatch_one(worker_id: str) -> bool:
     if job is None:
         return False
     if job["cancel_requested"]:
-        queue.request_cancel(job["id"])
+        queue.cancel_claimed(job["id"])
         return True
 
     handler = registry.JOB_HANDLERS.get(job["job_type"])

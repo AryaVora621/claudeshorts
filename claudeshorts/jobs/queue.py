@@ -107,6 +107,25 @@ def request_cancel(job_id: int) -> None:
         )
 
 
+def cancel_claimed(job_id: int) -> None:
+    """Terminalize a job the worker just claimed but discovered was already
+    flagged cancel_requested. request_cancel() deliberately never moves a
+    RUNNING row to CANCELLED (a worker may be mid-execution and is expected
+    to finish naturally), so it only sets the flag on RUNNING jobs and lets
+    the worker act on it. Without this, a job whose cancel was requested
+    while RUNNING, then failed back to RETRYING (still flagged), gets
+    re-claimed and would sit RUNNING forever: claim_next only selects
+    PENDING/RETRYING rows, so nothing else ever moves it to a terminal
+    state. Called from worker.dispatch_one right after claiming, before the
+    handler runs, so it's safe to unconditionally terminalize."""
+    with db.connect() as conn:
+        conn.execute(
+            "UPDATE jobs SET status = 'CANCELLED', finished_at = now() "
+            "WHERE id = %s AND status = 'RUNNING'",
+            (job_id,),
+        )
+
+
 def request_pause(job_id: int) -> None:
     with db.connect() as conn:
         conn.execute(
