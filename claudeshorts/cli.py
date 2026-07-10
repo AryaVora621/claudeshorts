@@ -28,8 +28,8 @@ app = typer.Typer(
 @app.command("init-db")
 def init_db_cmd() -> None:
     """Create the SQLite schema (idempotent)."""
-    path = init_db()
-    typer.echo(f"Initialized database at {path}")
+    init_db()
+    typer.echo("Database schema initialized.")
 
 
 @app.command("ingest")
