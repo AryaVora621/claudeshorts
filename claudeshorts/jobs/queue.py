@@ -94,7 +94,7 @@ def fail(job_id: int, error: str) -> None:
 def request_cancel(job_id: int) -> None:
     """Cancel a PENDING/RETRYING/PAUSED job immediately; flag a RUNNING one
     so the worker discards its result on completion (see spec: queue-level
-    cancel only, no mid-execution interruption)."""
+    cancel only, no mid-execution interruption). Terminal jobs are untouched."""
     with db.connect() as conn:
         conn.execute(
             "UPDATE jobs SET status = CASE WHEN status = 'RUNNING' "
@@ -102,7 +102,7 @@ def request_cancel(job_id: int) -> None:
             "cancel_requested = true, "
             "finished_at = CASE WHEN status != 'RUNNING' THEN now() "
             "ELSE finished_at END "
-            "WHERE id = %s",
+            "WHERE id = %s AND status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')",
             (job_id,),
         )
 

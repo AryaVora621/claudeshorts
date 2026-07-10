@@ -93,3 +93,27 @@ def test_pause_then_resume():
     queue.resume(job_id)
     claimed = queue.claim_next("worker-1")
     assert claimed["id"] == job_id
+
+
+def test_cancel_running_job_only_flags_it():
+    job_id = queue.enqueue("ingest", {}, name="ingest")
+    queue.claim_next("worker-1")
+    queue.request_cancel(job_id)
+    with db.connect() as conn:
+        row = conn.execute("SELECT * FROM jobs WHERE id = %s", (job_id,)).fetchone()
+    assert row["status"] == "RUNNING"
+    assert row["cancel_requested"] is True
+    assert row["finished_at"] is None
+
+
+def test_cancel_completed_job_is_a_noop():
+    job_id = queue.enqueue("ingest", {}, name="ingest")
+    queue.claim_next("worker-1")
+    queue.complete(job_id, "done")
+    with db.connect() as conn:
+        before = conn.execute("SELECT status, finished_at FROM jobs WHERE id = %s", (job_id,)).fetchone()
+    queue.request_cancel(job_id)
+    with db.connect() as conn:
+        after = conn.execute("SELECT status, finished_at FROM jobs WHERE id = %s", (job_id,)).fetchone()
+    assert after["status"] == "COMPLETED"
+    assert after["finished_at"] == before["finished_at"]
