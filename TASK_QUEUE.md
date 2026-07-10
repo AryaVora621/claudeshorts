@@ -1,12 +1,15 @@
 # Task Queue
 
 ## Open
-- **goal.md platform rebuild** (in progress): 14-chunk plan, human-required
-  chunks deferred to the end. Chunks 1-10 have committed spec+plan docs
-  under `docs/superpowers/specs/` and `docs/superpowers/plans/` but are
-  NOT YET IMPLEMENTED — current phase is planning only per user's /goal
-  directive. Next: chunk 11 (browser-automation profiles + Playwright
-  analytics). Full detail in `CHECKPOINT_LAST.md`.
+- **goal.md platform rebuild** (PLANNING COMPLETE, 14/14; implementation
+  NOT started): all 14 chunks have committed specs under
+  `docs/superpowers/specs/`, and all except 9/13 (research-only by
+  design) have committed TDD plans under `docs/superpowers/plans/`. Next:
+  user decides which chunk(s) to actually implement — chunks 1-9 have no
+  human-required blockers and can start immediately; chunks 10-14 each
+  have one explicitly-flagged human-required final step (real API
+  keys/logins/tokens) within an otherwise-complete plan. Full detail in
+  `CHECKPOINT_LAST.md`.
   New Supabase project `claudeshorts` (nddlutmilajkqtoygmfi) created for
   this; `adhdsat` project paused as part of the same decision.
 - BLOCKED on hardware: test the branch on the HOME SERVER (aiserver desktop,

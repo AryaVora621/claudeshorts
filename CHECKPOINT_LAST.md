@@ -1,8 +1,47 @@
+# CHECKPOINT / RESUME REPORT - 2026-07-10 (goal.md platform rebuild — PLANNING COMPLETE, 14/14)
+
+Agent: Claude (Sonnet 5), branch `feature/carousel-wider-topics`.
+
+## Status: ALL 14 chunks speced + planned. Zero code implemented yet.
+
+Chunks 11-14 landed since the "update 2" entry below:
+11. Browser-automation profile system — `docs/superpowers/specs/2026-07-10-chunk11-browser-profiles-design.md` + plan (profile metadata in `config/profiles/*.yaml`, session state gitignored under `/profiles/`; goal.md's no-sleep/resilient-selector/mandatory-failure-capture rules built into `browser/wait.py`/`errors.py`; Playwright analytics scraper fills chunk 5's "pending" placeholder; a 4th `PublishProvider`, `browser_profile`, added to chunk 10's registry — YouTube Studio's upload flow fully implemented as the reference, TikTok/Instagram left as real-but-calibration-pending stubs)
+12. Telegram bot interface — `docs/superpowers/specs/2026-07-10-chunk12-telegram-bot-design.md` + plan (bot is a pure HTTP client of chunk 4's REST API, never duplicates service logic; single admin chat only; profiles view-only; two small REST additions — `GET /profiles`, `POST /jobs/{id}/retry` — fill real gaps chunk 4 didn't cover)
+13. Higgsfield + Veo research note — `docs/superpowers/specs/2026-07-10-chunk13-higgsfield-veo-research-note.md` (research only, no plan; **key finding: AI video clips are a real recurring cost, ~$340/month at current posts_per_day, not a marginal add-on** — recommend implementing only as an opt-in per-channel/per-post upgrade, never a default, whenever the user decides the cost is worth it)
+14. Additional LLM provider API keys — `docs/superpowers/specs/2026-07-10-chunk14-llm-provider-keys-design.md` + plan (chunk 7's abstraction was already sufficient; this chunk adds copy-paste vendor config presets, a setup doc, and a `test-model-backend` CLI command so wiring a real key later is friction-free)
+
+**The 14-chunk goal.md platform rebuild planning effort is now complete.**
+Every chunk has a committed spec (`docs/superpowers/specs/2026-07-10-chunk*`)
+and, except chunks 9/13 (explicitly research-only by design), a committed
+TDD implementation plan (`docs/superpowers/plans/2026-07-10-chunk*`).
+**No code has been implemented for any chunk yet** — this was a planning-
+only phase per the standing `/goal` directive. The `/loop 10m continue
+working` cron is still active; the next firing should either wait for the
+user's explicit go-ahead to start implementing, or (if the user wants the
+loop to keep finding useful work) pick up chunks 1-9 for actual
+implementation, since those have no human-required blockers.
+
+### What's still genuinely human-required across the whole rebuild
+- Chunk 1: run the real Supabase migration (schema + data) end to end.
+- Chunk 10: obtain YouTube Data API / TikTok Content Posting API /
+  Instagram Graph API credentials.
+- Chunk 11: run `interactive_login.py` for real channel logins; calibrate
+  TikTok/Instagram upload selectors against a real session.
+- Chunk 12: create a real Telegram bot via BotFather, set
+  `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`.
+- Chunk 13: decide whether the ~$340/month AI-video-clip cost is worth
+  paying for any subset of content, then implement if so.
+- Chunk 14: obtain and paste in a real OpenRouter/NVIDIA/Gemini API key
+  (or run a local Ollama/LM Studio/vLLM server).
+None of these block implementing chunks 1-9's plans right now.
+
+---
+
 # CHECKPOINT / RESUME REPORT - 2026-07-10 (goal.md platform rebuild — planning phase, update 2)
 
 Agent: Claude (Sonnet 5), branch `feature/carousel-wider-topics`.
 
-## Status: 10 of 14 chunks fully speced + planned (docs only, no implementation yet)
+## Status (superseded — see 14/14 entry above): 10 of 14 chunks fully speced + planned (docs only, no implementation yet)
 
 Chunks 7-10 landed since the last checkpoint entry below:
 7. LLM provider abstraction — `docs/superpowers/specs/2026-07-10-chunk7-llm-provider-design.md` + plan (`LLMProvider` Protocol; `claude_cli`/`api` moved verbatim; one `OpenAICompatibleProvider` class registered twice as `local`/`openai_compat`, covering Ollama/LM Studio/vLLM and OpenRouter/NVIDIA/Gemini/OpenAI without per-vendor code)
