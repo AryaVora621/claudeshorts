@@ -1,6 +1,12 @@
 # Task Queue
 
 ## Open
+- **USER-REQUIRED — chunk 1 Task 11**: run the real Supabase migration. Put the
+  real Session Pooler URL (project `nddlutmilajkqtoygmfi`; DB password from the
+  Supabase dashboard) into `.env` as `SUPABASE_DB_URL`, back up `data/app.db`,
+  run `python -m scripts.migrate_sqlite_to_supabase data/app.db`, spot-check the
+  dashboard. Until then the store runs against a local docker Postgres
+  (`claudeshorts-test-pg`, port 54329, URL already in `.env`).
 - **goal.md platform rebuild** (PLANNING COMPLETE, 14/14; implementation
   NOT started): all 14 chunks have committed specs under
   `docs/superpowers/specs/`, and all except 9/13 (research-only by
@@ -28,6 +34,13 @@
 - Optional: Reddit OAuth so the disabled reddit sources work again.
 
 ## In-Progress
+- [IN_PROGRESS Claude/Fable5] goal.md rebuild implementation, chunks 1-8 via
+  subagent-driven development on branch `feature/platform-rebuild`.
+  **Chunk 1 (Supabase migration) code-complete**: store layer fully Postgres
+  (psycopg3, JSONB, context-manager commits), per-module TDD suites + caller
+  import smoke test + migration script, 31/31 tests green against local docker
+  Postgres. Only the human-required Task 11 (real data migration) remains — see
+  Open. Progress ledger: `.superpowers/sdd/progress.md`. Next: chunk 2 (job queue).
 - [IN_PROGRESS Claude/Opus] Live jobs dashboard: percent bars (phase + per-item),
   clickable job history that survives restarts (new `jobs` SQLite table),
   embedded live terminal in the dashboard. Frontend + read-only progress

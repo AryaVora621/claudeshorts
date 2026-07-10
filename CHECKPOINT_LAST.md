@@ -1,3 +1,32 @@
+# CHECKPOINT / RESUME REPORT - 2026-07-10 (implementation session — chunk 1 CODE-COMPLETE)
+
+Agent: Claude (Fable 5), branch `feature/platform-rebuild` (created off
+`feature/carousel-wider-topics`). Executing chunks 1-8 via
+superpowers:subagent-driven-development; ledger in `.superpowers/sdd/progress.md`.
+
+## Chunk 1 (Supabase migration): tasks 1-10 of 11 DONE, reviewed, committed
+- Store layer fully converted to Postgres/psycopg3 (db/items/posts/threads/
+  pins/runs/jobs), public APIs unchanged, JSONB native, context-manager commits.
+- New: tests/ (31 tests, all green), scripts/migrate_sqlite_to_supabase.py
+  (dest-count verification, sequence reset, --force guard).
+- Tests run against a LOCAL docker Postgres `claudeshorts-test-pg` (port 54329,
+  password claudeshorts, URL in gitignored .env). Docker Desktop was started for
+  this; container must be running for the suite to pass.
+- Review findings fixed along the way: cli.py init-db no longer echoes None
+  (227ef59); migration verify now checks destination counts + all-table test
+  coverage (5e44281).
+- Commits: ada2860..5e44281 (plan doc, task 1-10 feats/fixes).
+
+## Task 11 = HUMAN-REQUIRED (do NOT automate): real migration to Supabase
+project `nddlutmilajkqtoygmfi` needs the DB password → real Session Pooler URL
+in .env, backup data/app.db, run the script, spot-check dashboard.
+
+## Next action
+Chunk 2 (job queue + state machine) via the same SDD loop; then chunks 3-8.
+Chunks 10-14 remain blocked on user-supplied credentials — do not start them.
+
+---
+
 # CHECKPOINT / RESUME REPORT - 2026-07-10 (goal.md platform rebuild — PLANNING COMPLETE, 14/14, handoff to dynamic workflows)
 
 Agent: Claude (Sonnet 5), branch `feature/carousel-wider-topics`.
