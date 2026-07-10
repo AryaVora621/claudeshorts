@@ -2,7 +2,7 @@
 {% block title %}Job {{ job.id }}{% endblock %}
 {% block body %}
 <h1>Job #{{ job.id }} — {{ job.name }}</h1>
-<p class="sub">Status: <span class="badge {{ job.status }}" id="term-status">{{ job.status }}</span>
+<p class="sub">Status: <span class="badge {{ job.status|lower }}" id="term-status">{{ job.status }}</span>
   · <a href="/jobs">all jobs →</a></p>
 
 <div class="term">

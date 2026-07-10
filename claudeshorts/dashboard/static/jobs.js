@@ -34,7 +34,9 @@
   function barHTML(opts) {
     var done = !!opts.done;
     var indeterminate = opts.indeterminate && !done;
-    var statusClass = done ? (opts.status || "ok") : "";
+    // Backend statuses are uppercase (COMPLETED/FAILED/...); CSS selectors
+    // are lowercase, so normalize before it becomes a class name.
+    var statusClass = done ? (opts.status || "ok").toLowerCase() : "";
     var pct = done ? 100 : (opts.percent == null ? 0 : opts.percent);
     var cls = "bar " + statusClass + (indeterminate ? " indeterminate" : "");
     var right = done ? (opts.status || "done")
@@ -88,7 +90,10 @@
   }
 
   function badge(status) {
-    return '<span class="badge ' + esc(status) + '">' + esc(status) + "</span>";
+    // Text keeps the raw (uppercase) status; class is lowercased to match
+    // the CSS color-coding selectors (.badge.ok, .badge.completed, ...).
+    var cls = (status || "").toLowerCase();
+    return '<span class="badge ' + esc(cls) + '">' + esc(status) + "</span>";
   }
 
   // ---- list polling -----------------------------------------------------
@@ -163,14 +168,19 @@
     es.addEventListener("progress", function (e) {
       try {
         var p = JSON.parse(e.data);
+        // Backend statuses are uppercase (RUNNING/PENDING/RETRYING/...);
+        // normalize before comparing so bars don't render as finished on
+        // the very first tick.
+        var s = (p.status || "").toLowerCase();
         var job = { phase: p.phase, step: p.step, status: p.status,
-          done: p.status !== "running", name: "", elapsed_seconds: p.elapsed_seconds };
+          done: ["running", "pending", "retrying"].indexOf(s) === -1,
+          name: "", elapsed_seconds: p.elapsed_seconds };
         if (barsEl) barsEl.innerHTML = detailBars(job);
-        if (statusEl) { statusEl.className = "badge " + p.status; statusEl.textContent = p.status; }
+        if (statusEl) { statusEl.className = "badge " + s; statusEl.textContent = p.status; }
       } catch (_) { /* ignore malformed frame */ }
     });
     es.addEventListener("done", function (e) {
-      if (statusEl) { statusEl.className = "badge " + e.data; statusEl.textContent = e.data; }
+      if (statusEl) { statusEl.className = "badge " + (e.data || "").toLowerCase(); statusEl.textContent = e.data; }
       es.close(); current.es = null;
     });
     es.onerror = function () { es.close(); current.es = null; };
