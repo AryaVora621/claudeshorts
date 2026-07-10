@@ -42,7 +42,7 @@ def unpin_article(item_id: int) -> dict[str, Any]:
 
 
 def generate_from_item(item_id: int, *, display_title: str | None = None) -> dict[str, Any]:
-    name = (f'generate from "{display_title[:40]}"' if display_title
+    name = (f"generate from “{display_title[:40]}”" if display_title
             else f"generate from item {item_id}")
     job_id = job_queue.enqueue("generate_from_item", {"item_id": item_id}, name=name)
     return {"job_id": job_id}
