@@ -39,3 +39,13 @@ def test_mark_running_interrupted():
         n = jobs.mark_running_interrupted(conn)
         assert n == 1
         assert jobs.get_job(conn, 1)["status"] == "interrupted"
+
+
+def test_save_snapshot_partial_update_preserves_other_columns():
+    with db.connect() as conn:
+        jobs.insert_job(conn, job_id=1, name="ingest")
+        jobs.save_snapshot(conn, 1, {"status": "RUNNING"})
+        jobs.save_snapshot(conn, 1, {"phase_index": 2, "phase_total": 5})
+        got = jobs.get_job(conn, 1)
+    assert got["status"] == "RUNNING"
+    assert got["phase_index"] == 2

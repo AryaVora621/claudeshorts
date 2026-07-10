@@ -31,11 +31,14 @@ def insert_job(conn: psycopg.Connection, *, job_id: int, name: str) -> None:
 
 
 def save_snapshot(conn: psycopg.Connection, job_id: int, snap: dict[str, Any]) -> None:
-    """Persist the current state of a job (progress, log, status, finish time)."""
-    cols = ", ".join(f"{c} = %s" for c in _PROGRESS_COLS)
+    """Persist a partial or full state update for a job (progress, log, status)."""
+    present = [c for c in _PROGRESS_COLS if c in snap]
+    if not present:
+        return
+    cols = ", ".join(f"{c} = %s" for c in present)
     conn.execute(
         f"UPDATE jobs SET {cols} WHERE id = %s",
-        tuple(snap.get(c) for c in _PROGRESS_COLS) + (job_id,),
+        tuple(snap[c] for c in present) + (job_id,),
     )
 
 
