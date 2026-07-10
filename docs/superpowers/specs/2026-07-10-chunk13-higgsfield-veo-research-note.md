@@ -87,9 +87,53 @@ per-channel or per-post opt-in flag defaulting to off, with the existing
 static-template rendering remaining the zero-cost default for everyone
 else.
 
+## Addendum (2026-07-10): the user's existing Google AI Pro subscription
+
+The user already pays for **Google AI Pro** ($20/mo) and asked whether
+that removes the cost problem above. It doesn't fully, but it changes the
+picture:
+
+- **Pro's Veo access is app/UI-quota, not API credit.** Google AI Pro
+  gives roughly **3 Veo 3 Fast generations/day in the Gemini app**, or
+  access governed by **~1,000 monthly AI credits shared across Google
+  Flow/Whisk** (Ultra: ~5/day in Gemini, ~12,500 monthly Flow credits —
+  order-of-magnitude over 100 Veo-3-quality clips/month). This quota is
+  **not** the same thing as free Vertex AI API calls — the pay-per-second
+  API pricing in this note's Cost Analysis section applies regardless of
+  having a Pro/Ultra subscription; the subscription's Veo access lives
+  only inside Google's own **Flow** web app (`labs.google/fx/tools/flow`)
+  and the Gemini app, both human-facing UIs with no official API tied to
+  the subscription tier.
+- **This is exactly what chunk 11's browser-profile pattern is for.**
+  Flow is a normal logged-in web app; third-party tools already exist
+  that batch-automate it via browser extensions (precedent found during
+  this research), confirming the approach is viable. A
+  `VideoClipProvider` implementation could drive Flow through a Playwright
+  profile session (chunk 11's `session.py`/`errors.py`/`wait.py`
+  scaffolding, same shape as the browser-based publish provider) instead
+  of calling the paid Vertex AI API — using the subscription's included
+  quota at **zero marginal cost**, bounded by Pro's daily/monthly limits.
+- **This does not solve the volume problem.** ~3-5 Veo clips/day (Pro) or
+  ~100/month (Ultra, via Flow credits) is nowhere near
+  `posts_per_day: 3` x ~5 slides/post x 30 days (~450 clips/month) needed
+  for every slide of every post to have a generated clip. It *does*
+  comfortably cover the "opt-in for select content only" usage this
+  note already recommended — e.g. one hero clip per top post per day, or
+  per week.
+
+**Updated recommendation:** when the user is ready to proceed (still not
+this chunk), prefer a `flow_browser` `VideoClipProvider` implementation
+(reusing chunk 11's browser-profile plumbing against the subscription's
+included quota) as the first, zero-marginal-cost option, with a
+Vertex-AI-API-backed `veo_api` implementation as a fallback/scale-up path
+only if usage ever needs to exceed the subscription's daily/monthly
+limits. Both are real options now, upgraded from "implement later" to
+"cheaper path identified" — but still deferred, since it's still new
+code needing the user's go-ahead on scope.
+
 ## Out of scope for this chunk
 
-No code, no plan document, no API keys obtained — per the user's
-confirmed "research now" posture. Revisit only when the user decides the
-per-video cost is worth spending against, and treat that as its own new
+No code, no plan document, no API keys obtained, no Flow automation
+built — per the user's confirmed "research now" posture. Revisit only
+when the user decides to proceed, and treat that as its own new
 chunk/spec cycle rather than retroactively expanding this note.
