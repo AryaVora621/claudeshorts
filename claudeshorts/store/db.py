@@ -81,7 +81,16 @@ CREATE TABLE IF NOT EXISTS pins (
 CREATE TABLE IF NOT EXISTS jobs (
     id               BIGSERIAL PRIMARY KEY,
     name             TEXT        NOT NULL,
-    status           TEXT        NOT NULL DEFAULT 'running',
+    status           TEXT        NOT NULL DEFAULT 'PENDING',
+    job_type         TEXT        NOT NULL DEFAULT 'legacy',
+    payload          JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    attempts         INTEGER     NOT NULL DEFAULT 0,
+    max_attempts     INTEGER     NOT NULL DEFAULT 3,
+    next_attempt_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    cancel_requested BOOLEAN     NOT NULL DEFAULT false,
+    pause_requested  BOOLEAN     NOT NULL DEFAULT false,
+    locked_by        TEXT,
+    locked_at        TIMESTAMPTZ,
     phase_index      INTEGER     NOT NULL DEFAULT 0,
     phase_total      INTEGER     NOT NULL DEFAULT 0,
     phase_label      TEXT        NOT NULL DEFAULT '',
@@ -93,6 +102,22 @@ CREATE TABLE IF NOT EXISTS jobs (
     started_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     finished_at      TIMESTAMPTZ
 );
+
+-- Upgrade pre-chunk-2 databases in place with ADD COLUMN IF NOT EXISTS.
+-- Existing jobs keep their old status values (lowercase); Task 8 dashboard
+-- must handle both vocabularies for historical display.
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS job_type TEXT NOT NULL DEFAULT 'legacy';
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS payload JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS max_attempts INTEGER NOT NULL DEFAULT 3;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS cancel_requested BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS pause_requested BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS locked_by TEXT;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS locked_at TIMESTAMPTZ;
+ALTER TABLE jobs ALTER COLUMN status SET DEFAULT 'PENDING';
+
+CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, next_attempt_at);
 """
 
 
