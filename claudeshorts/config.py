@@ -8,6 +8,7 @@ created on demand and are gitignored.
 from __future__ import annotations
 
 import functools
+import os
 from pathlib import Path
 from typing import Any
 
@@ -50,3 +51,15 @@ def settings() -> dict[str, Any]:
 def sources() -> list[dict[str, Any]]:
     """List of configured news sources from config/sources.yaml (cached)."""
     return _load_yaml(SOURCES_PATH).get("sources", [])
+
+
+def supabase_db_url() -> str:
+    """The Supabase Postgres connection string (Session Pooler), from env."""
+    url = os.environ.get("SUPABASE_DB_URL")
+    if not url:
+        raise RuntimeError(
+            "SUPABASE_DB_URL is not set. Copy .env.example to .env and fill "
+            "in the Session Pooler connection string from your Supabase "
+            "project's Database settings."
+        )
+    return url
