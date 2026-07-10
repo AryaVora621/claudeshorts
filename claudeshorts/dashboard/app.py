@@ -170,34 +170,25 @@ def create_app() -> FastAPI:
 
     @app.post("/posts/{post_id}/approve")
     def approve(post_id: int):
-        from ..publish import export_post
-        from ..store import get_post, set_status
+        from ..services import posts_service
 
-        with connect() as conn:
-            post = get_post(conn, post_id)
-        if post:
-            with connect() as conn:
-                set_status(conn, post_id, "approved")
-                conn.commit()
-            # No schedule -> publish immediately; scheduled -> the run drains it.
-            if not post.get("scheduled_for"):
-                try:
-                    export_post(post)
-                except FileNotFoundError as exc:
-                    return _redirect("/review", err=str(exc))
-                return _redirect("/review", msg=f"post {post_id} approved & exported")
-            return _redirect("/review",
-                             msg=f"post {post_id} approved; will publish {post['scheduled_for']}")
-        return _redirect("/review", err="post not found")
+        try:
+            result = posts_service.approve_post(post_id)
+        except ValueError:
+            return _redirect("/review", err="post not found")
+        if result["exported"]:
+            return _redirect("/review", msg=f"post {post_id} approved & exported")
+        return _redirect(
+            "/review",
+            msg=f"post {post_id} approved; will publish {result['scheduled_for']}",
+        )
 
     @app.post("/posts/{post_id}/reject")
     async def reject(post_id: int, request: Request):
-        from ..store import set_status
+        from ..services import posts_service
 
         note = (await _form(request)).get("note", "").strip() or None
-        with connect() as conn:
-            set_status(conn, post_id, "rejected", note=note)
-            conn.commit()
+        posts_service.reject_post(post_id, note=note)
         return _redirect("/review", msg=f"post {post_id} rejected")
 
     # --- Articles ----------------------------------------------------------
@@ -215,53 +206,42 @@ def create_app() -> FastAPI:
 
     @app.post("/articles/add")
     async def articles_add(request: Request):
-        from ..store import insert_manual_item
-        from ..store.pins import pin_item
+        from ..services import articles_service
 
         f = await _form(request)
         title = (f.get("title") or "").strip()
         if not title:
             return _redirect("/articles", err="title is required")
-        with connect() as conn:
-            item_id, created = insert_manual_item(
-                conn, title=title,
-                url=(f.get("url") or "").strip() or None,
-                summary=(f.get("summary") or "").strip() or None,
-            )
-            conn.commit()
-        action = f.get("action", "pin")
-        if action == "generate":
-            jid = jobs.enqueue_job("generate_from_item", {"item_id": item_id},
-                                   f"generate from “{title[:40]}”")
-            return _redirect(f"/jobs/{jid}")
-        with connect() as conn:
-            pin_item(conn, item_id)
-            conn.commit()
-        verb = "added" if created else "already known; pinned"
-        return _redirect("/articles", msg=f"article {verb} (#{item_id})")
+        result = articles_service.add_manual_article(
+            title=title,
+            url=(f.get("url") or "").strip() or None,
+            summary=(f.get("summary") or "").strip() or None,
+            action=f.get("action", "pin"),
+        )
+        if "job_id" in result:
+            return _redirect(f"/jobs/{result['job_id']}")
+        verb = "added" if result["created"] else "already known; pinned"
+        return _redirect("/articles", msg=f"article {verb} (#{result['item_id']})")
 
     @app.post("/articles/{item_id}/generate")
     def articles_generate(item_id: int):
-        jid = jobs.enqueue_job("generate_from_item", {"item_id": item_id},
-                               f"generate from item {item_id}")
-        return _redirect(f"/jobs/{jid}")
+        from ..services import articles_service
+
+        result = articles_service.generate_from_item(item_id)
+        return _redirect(f"/jobs/{result['job_id']}")
 
     @app.post("/articles/{item_id}/pin")
     def articles_pin(item_id: int):
-        from ..store.pins import pin_item
+        from ..services import articles_service
 
-        with connect() as conn:
-            pin_item(conn, item_id)
-            conn.commit()
+        articles_service.pin_article(item_id)
         return _redirect("/articles", msg=f"item {item_id} pinned for a future post")
 
     @app.post("/articles/{item_id}/unpin")
     def articles_unpin(item_id: int):
-        from ..store.pins import unpin_item
+        from ..services import articles_service
 
-        with connect() as conn:
-            unpin_item(conn, item_id)
-            conn.commit()
+        articles_service.unpin_article(item_id)
         return _redirect("/articles", msg=f"item {item_id} unpinned")
 
     # --- Posts -------------------------------------------------------------
@@ -299,30 +279,22 @@ def create_app() -> FastAPI:
 
     @app.post("/posts/{post_id}/export")
     def post_export(post_id: int):
-        from ..publish import export_post
-        from ..store import get_post, set_status
+        from ..services import posts_service
 
-        with connect() as conn:
-            post = get_post(conn, post_id)
-        if not post:
-            return _redirect("/posts", err="post not found")
-        with connect() as conn:
-            set_status(conn, post_id, "approved")
-            conn.commit()
         try:
-            export_post(post)
+            posts_service.export_post_now(post_id)
+        except ValueError:
+            return _redirect("/posts", err="post not found")
         except FileNotFoundError as exc:
             return _redirect("/posts", err=str(exc))
         return _redirect("/posts", msg=f"post {post_id} exported")
 
     @app.post("/posts/{post_id}/schedule")
     async def post_schedule(post_id: int, request: Request):
-        from ..store import set_schedule
+        from ..services import posts_service
 
         when = (await _form(request)).get("scheduled_for", "").strip() or None
-        with connect() as conn:
-            set_schedule(conn, post_id, when)
-            conn.commit()
+        posts_service.schedule_post(post_id, when)
         where = request.headers.get("referer", "/posts")
         where = "/schedule" if "/schedule" in where else "/posts"
         return _redirect(where, msg=(f"post {post_id} scheduled for {when}" if when
@@ -342,18 +314,12 @@ def create_app() -> FastAPI:
 
     @app.post("/posts/{post_id}/publish-now")
     def publish_now(post_id: int):
-        from ..publish import export_post
-        from ..store import get_post, set_status
+        from ..services import posts_service
 
-        with connect() as conn:
-            post = get_post(conn, post_id)
-        if not post:
-            return _redirect("/schedule", err="post not found")
-        with connect() as conn:
-            set_status(conn, post_id, "approved")
-            conn.commit()
         try:
-            export_post(post)
+            posts_service.export_post_now(post_id)
+        except ValueError:
+            return _redirect("/schedule", err="post not found")
         except FileNotFoundError as exc:
             return _redirect("/schedule", err=str(exc))
         return _redirect("/schedule", msg=f"post {post_id} published now")
