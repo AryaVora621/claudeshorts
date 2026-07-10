@@ -20,7 +20,9 @@ def test_generate_from_item_unpacks_payload():
 
 def test_render_post_unpacks_payload():
     with patch("claudeshorts.services.pipeline_service.render_post_service") as mock_fn:
-        mock_fn.return_value = "rendered post 7: 40 frames"
+        mock_fn.return_value = {
+            "frames": 40, "duration_ms": 5000, "audio_mode": "tts", "review_dir": "/review/7",
+        }
         result = registry.JOB_HANDLERS["render_post"]({"post_id": 7})
         mock_fn.assert_called_once_with(7)
-        assert result == "rendered post 7: 40 frames"
+        assert result == "rendered post 7: 40 frames, 5000ms, audio=tts"

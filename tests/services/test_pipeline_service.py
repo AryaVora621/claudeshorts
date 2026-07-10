@@ -33,11 +33,16 @@ def test_render_post_service_renders_and_assembles():
          patch("claudeshorts.services.pipeline_service.render_post") as mock_render, \
          patch("claudeshorts.services.pipeline_service.assemble_review") as mock_assemble:
         mock_get.return_value = {"id": 7}
-        mock_render.return_value = {"frames": 40}
+        mock_render.return_value = {"frames": 40, "duration_ms": 5000, "audio_mode": "tts"}
+        mock_assemble.return_value = "/review/7"
         result = pipeline_service.render_post_service(7)
     mock_render.assert_called_once_with({"id": 7})
-    mock_assemble.assert_called_once_with({"id": 7}, {"frames": 40})
-    assert result == "rendered post 7: 40 frames"
+    mock_assemble.assert_called_once_with(
+        {"id": 7}, {"frames": 40, "duration_ms": 5000, "audio_mode": "tts"},
+    )
+    assert result == {
+        "frames": 40, "duration_ms": 5000, "audio_mode": "tts", "review_dir": "/review/7",
+    }
 
 
 def test_run_full_pipeline_service_delegates():

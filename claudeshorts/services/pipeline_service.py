@@ -30,14 +30,19 @@ def generate_from_item_service(item_id: int) -> dict[str, Any]:
     return generate_for_item(item_id)
 
 
-def render_post_service(post_id: int) -> str:
+def render_post_service(post_id: int) -> dict[str, Any]:
     with connect() as conn:
         post = get_post(conn, post_id)
     if not post:
         raise ValueError(f"no post {post_id}")
     result = render_post(post)
-    assemble_review(post, result)
-    return f"rendered post {post_id}: {result.get('frames')} frames"
+    review_dir = assemble_review(post, result)
+    return {
+        "frames": result.get("frames"),
+        "duration_ms": result.get("duration_ms"),
+        "audio_mode": result.get("audio_mode"),
+        "review_dir": review_dir,
+    }
 
 
 def run_full_pipeline_service(

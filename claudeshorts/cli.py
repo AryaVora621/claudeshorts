@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 from . import __version__
 from .config import DB_PATH
+from .services import pipeline_service
 from .store import init_db
 
 # Load .env (e.g. ANTHROPIC_API_KEY) before any command runs.
@@ -38,10 +39,8 @@ def ingest_cmd(
     limit: int = typer.Option(None, help="Max items per source."),
 ) -> None:
     """Fetch + dedupe news into the store. [Phase 1]"""
-    from .ingest import run_ingest
-
     init_db()
-    stats = run_ingest(since=since, limit=limit)
+    stats = pipeline_service.run_ingest_service(since=since, limit=limit)
     typer.echo(
         f"fetched={stats['fetched']} stored={stats['stored']} "
         f"duplicates={stats['duplicates']} skipped_old={stats['skipped_old']} "
@@ -83,8 +82,6 @@ def generate_cmd(
         TextColumn, TimeElapsedColumn,
     )
 
-    from .generate import run_generate
-
     init_db()
     tally = {"fail": 0}
 
@@ -109,7 +106,7 @@ def generate_cmd(
                 tally["fail"] += 1
                 progress.update(task, description=f"[red]✗[/] {short}", advance=1)
 
-        results = run_generate(limit=limit, on_progress=cb)
+        results = pipeline_service.run_generate_service(limit=limit, on_progress=cb)
         if progress.tasks[task].total is None:  # no topics -> no callbacks fired
             progress.update(task, total=0)
 
@@ -125,28 +122,20 @@ def generate_cmd(
 @app.command("render")
 def render_cmd(post_id: int = typer.Argument(..., help="posts.id to render.")) -> None:
     """Render a post's slides to an MP4 via the Node renderer. [Phase 3]"""
-    from .render import render_post
-    from .store import connect, get_post
-
     init_db()
-    with connect() as conn:
-        post = get_post(conn, post_id)
-    if not post:
-        typer.echo(f"No post with id {post_id}.", err=True)
-        raise typer.Exit(1)
     try:
-        result = render_post(post)
+        summary = pipeline_service.render_post_service(post_id)
+    except ValueError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1)
     except RuntimeError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1)
-    from .review import assemble_review
-
-    review_dir = assemble_review(post, result)
     typer.echo(
-        f"rendered post #{post_id}: {result['frames']} frames, "
-        f"{result['duration_ms']}ms, audio={result['audio_mode']}"
+        f"rendered post #{post_id}: {summary['frames']} frames, "
+        f"{summary['duration_ms']}ms, audio={summary['audio_mode']}"
     )
-    typer.echo(f"review folder: {review_dir}")
+    typer.echo(f"review folder: {summary['review_dir']}")
 
 
 @app.command("serve")
@@ -171,9 +160,7 @@ def run_cmd(
     skip_render: bool = typer.Option(False, help="Stop after generation (no render)."),
 ) -> None:
     """Run the full daily pipeline (ingest -> ... -> review queue). [Phase 5]"""
-    from .orchestrate import run_pipeline
-
-    summary = run_pipeline(limit=limit, force=force, skip_render=skip_render)
+    summary = pipeline_service.run_full_pipeline_service(limit=limit, force=force, skip_render=skip_render)
     if summary.get("skipped"):
         typer.echo(f"Skipped: {summary['reason']} ({summary['date']}). Use --force to repeat.")
         return
