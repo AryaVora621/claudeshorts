@@ -74,17 +74,14 @@ def main(sqlite_path: Path, *, force: bool = False) -> dict[str, int]:
         finally:
             sconn.close()
 
-    sconn = sqlite3.connect(sqlite_path)
-    try:
+    with db.connect() as pconn:
         for table in _TABLE_ORDER:
-            source_n = sconn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-            if source_n != counts[table]:
+            dest_n = pconn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()["n"]
+            if dest_n != counts[table]:
                 raise RuntimeError(
-                    f"Row count mismatch for {table}: source had {source_n}, "
-                    f"copied {counts[table]}."
+                    f"Row count mismatch for {table}: expected {counts[table]} "
+                    f"(from source), destination has {dest_n}."
                 )
-    finally:
-        sconn.close()
 
     return counts
 
