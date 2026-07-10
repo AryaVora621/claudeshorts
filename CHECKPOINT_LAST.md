@@ -2,7 +2,7 @@
 
 Agent: Claude (Sonnet 5), branch `feature/carousel-wider-topics`.
 
-## Status: 4 of 14 chunks fully speced + planned (docs only, no implementation yet)
+## Status: 6 of 14 chunks fully speced + planned (docs only, no implementation yet)
 
 User's goal.md describes a full platform rebuild (plugin providers, job
 queue, service layer, REST API, Telegram bot, scheduling, multi-channel
@@ -28,14 +28,16 @@ keep this loop going; each firing should pick up the next pending chunk.
 2. Job queue + state machine — `docs/superpowers/specs/2026-07-10-chunk2-job-queue-design.md` + plan
 3. Service layer extraction — `docs/superpowers/specs/2026-07-10-chunk3-service-layer-design.md` + plan
 4. REST API over services — `docs/superpowers/specs/2026-07-10-chunk4-rest-api-design.md` + plan
+5. Scheduling engine — `docs/superpowers/specs/2026-07-10-chunk5-scheduling-engine-design.md` + plan (self-contained recurring scheduler; weekly report has an honest "pending Playwright analytics" placeholder, real cross-platform engagement deferred to chunk 11 per user's choice of Playwright scraping over platform APIs)
+6. Structured logging overhaul — `docs/superpowers/specs/2026-07-10-chunk6-structured-logging-design.md` + plan
 
 ### Next action
-Chunk 5: scheduling engine (immediate/scheduled/recurring/approval-gated
-publishing). Then chunks 6-9 (structured logging, LLM provider abstraction,
-more video styles, Contexto note), then deferred chunks 10-14 (publishing
-plugins, browser profiles, Telegram bot, Higgsfield/Veo, additional LLM
-keys) — these need API keys/logins from the user, per their explicit
-"leave human-required tasks for last" instruction.
+Chunk 7: LLM provider abstraction (interface only — Claude stays the only
+wired backend, others are stubs pending API keys). Then chunks 8-9 (more
+video styles, Contexto note), then deferred chunks 10-14 (publishing
+plugins, browser profiles + Playwright analytics, Telegram bot,
+Higgsfield/Veo, additional LLM keys) — these need API keys/logins from the
+user, per their explicit "leave human-required tasks for last" instruction.
 
 ### Human decisions needed
 None blocking right now — next chunks proceed with reasonable defaults,
