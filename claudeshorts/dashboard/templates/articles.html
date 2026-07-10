@@ -50,7 +50,7 @@
     <td>{% if it.url %}<a href="{{ it.url }}" target="_blank" rel="noopener">{{ it.title }}</a>
         {% else %}{{ it.title }}{% endif %}</td>
     <td><span class="badge">{{ it.source }}</span></td>
-    <td class="muted">{{ (it.published_at or it.fetched_at or '')[:10] }}</td>
+    <td class="muted">{{ (it.published_at or it.fetched_at) | tsdate }}</td>
     <td class="row">
       <form class="inline" method="post" action="/articles/{{ it.id }}/generate">
         <button class="btn small green" type="submit">Generate</button></form>

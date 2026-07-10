@@ -13,7 +13,7 @@ live to the browser (see ``jobs`` + the ``/jobs`` routes).
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode
 
@@ -30,6 +30,27 @@ from . import auth, jobs, settings_io
 
 _HERE = Path(__file__).resolve().parent
 _templates = Jinja2Templates(directory=str(_HERE / "templates"))
+
+
+def _format_timestamp(value: object, length: int | None) -> str:
+    """Render a DB timestamp for display.
+
+    Postgres (psycopg3) returns TIMESTAMPTZ columns as ``datetime.datetime``;
+    the old SQLite store returned them as ISO strings. Templates historically
+    string-sliced the ISO string (e.g. ``[:16]``) to trim to "YYYY-MM-DD HH:MM" —
+    accept either shape here so callers don't care which store produced the row.
+    """
+    if value is None:
+        return ""
+    text = value.isoformat(sep=" ") if isinstance(value, datetime) else str(value)
+    return text[:length] if length is not None else text
+
+
+# Jinja filters used by templates in place of raw string-slicing on timestamp
+# columns, which breaks once a column comes back as `datetime` instead of `str`.
+_templates.env.filters["tshort"] = lambda v: _format_timestamp(v, 16)  # "YYYY-MM-DD HH:MM"
+_templates.env.filters["tsfull"] = lambda v: _format_timestamp(v, 19)  # "YYYY-MM-DD HH:MM:SS"
+_templates.env.filters["tsdate"] = lambda v: _format_timestamp(v, 10)  # "YYYY-MM-DD"
 
 # Media names the dashboard will serve for a post: the video, its poster, and
 # the carousel stills (``slides/slide_NN.png``). The strict slide pattern keeps

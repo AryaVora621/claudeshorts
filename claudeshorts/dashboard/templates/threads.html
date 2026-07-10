@@ -11,7 +11,7 @@
 <div class="card">
   <p class="title">{{ th.title }}
     <span class="badge {{ th.status }}">{{ th.status }}</span></p>
-  <p class="muted"><code>{{ th.slug }}</code> · updated {{ (th.last_updated or '')[:16] }}</p>
+  <p class="muted"><code>{{ th.slug }}</code> · updated {{ th.last_updated | tshort }}</p>
   {% if th.summary %}<p>{{ th.summary }}</p>{% endif %}
   {% if th.posts %}
   <table style="margin-top:6px">
@@ -21,7 +21,7 @@
       <td>#{{ p.id }}</td>
       <td>{{ p.title or '(untitled)' }}</td>
       <td><span class="badge {{ p.status }}">{{ p.status }}</span></td>
-      <td class="muted">{{ (p.created_at or '')[:16] }}</td>
+      <td class="muted">{{ p.created_at | tshort }}</td>
     </tr>
     {% endfor %}
   </table>

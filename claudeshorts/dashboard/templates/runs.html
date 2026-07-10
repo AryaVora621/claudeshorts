@@ -14,8 +14,8 @@
     <td>{{ r.run_date }}</td>
     <td><span class="badge {{ r.status }}">{{ r.status }}</span></td>
     <td>{{ r.posts_created }}</td>
-    <td class="muted">{{ (r.started_at or '')[:19] }}</td>
-    <td class="muted">{{ (r.finished_at or '')[:19] }}</td>
+    <td class="muted">{{ r.started_at | tsfull }}</td>
+    <td class="muted">{{ r.finished_at | tsfull }}</td>
     <td class="muted" style="max-width:340px;overflow:hidden;text-overflow:ellipsis">{{ r.detail or '' }}</td>
   </tr>
   {% endfor %}

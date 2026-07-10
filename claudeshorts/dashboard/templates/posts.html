@@ -14,7 +14,7 @@
     <td>{{ p.id }}</td>
     <td>{{ p.title or '(untitled)' }}</td>
     <td><span class="badge {{ p.status }}">{{ p.status }}</span></td>
-    <td class="muted">{{ (p.created_at or '')[:16] }}</td>
+    <td class="muted">{{ p.created_at | tshort }}</td>
     <td>
       <form method="post" action="/posts/{{ p.id }}/schedule" class="row">
         <input type="date" name="scheduled_for" value="{{ p.scheduled_for or '' }}" style="width:150px">
