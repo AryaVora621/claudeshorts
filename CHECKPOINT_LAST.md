@@ -1,7 +1,35 @@
-# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1+2 CODE-COMPLETE)
+# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-3 CODE-COMPLETE)
 
 Agent: Claude (Fable 5), branch `feature/platform-rebuild`. SDD ledger:
 `.superpowers/sdd/progress.md`.
+
+## Chunk 3 (service layer extraction): DONE, reviewed, verified live
+- New `claudeshorts/services/` package: posts_service (approve/reject/
+  schedule/export_now — unified the export/publish-now duplicate),
+  articles_service (add/pin/unpin/generate_from_item), pipeline_service
+  (ingest/generate/render/full_run/generate_from_item).
+- jobs/registry.py reduced to a pure lookup over pipeline_service. Trade-off
+  (reviewer-verified, plan-mandated): importing the registry now eagerly
+  loads the whole pipeline stack (no cycle, no playwright).
+- Dashboard's 9 POST handlers and CLI's ingest/generate/render/run are thin
+  service callers. render_post_service returns a dict (frames/duration_ms/
+  audio_mode/review_dir); CLI keeps its rich output, job log keeps one-liner.
+- Fix rounds during review: restored parity catches in approve/schedule
+  (b584dc7); untracked accidental .opencode/.serena/goal.md artifacts +
+  gitignored them (84e8259).
+- Live-smoke caught a latent chunk-1 bug: templates string-sliced timestamp
+  columns that psycopg returns as datetime → /posts 500. Fixed via
+  tshort/tsfull/tsdate Jinja filters + full repo sweep (6 fixed, 12 safe)
+  + page-rendering-with-rows regression tests (01cad0c).
+- Verified: full suite 88/88; all 8 dashboard pages 200 with data present.
+- Commits 32c626d..01cad0c.
+
+## Next action
+Chunk 4 (REST API over services) via the same SDD loop; then 5-8.
+Human-required items unchanged (chunk 1 Task 11 real migration; chunks
+10-14 blocked on user credentials — do not start).
+
+---
 
 ## Chunk 2 (job queue + state machine): DONE, reviewed, verified live
 - jobs table extended (queue columns via additive ALTERs; status vocab now
