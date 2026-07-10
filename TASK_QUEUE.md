@@ -1,6 +1,14 @@
 # Task Queue
 
 ## Open
+- **goal.md platform rebuild** (in progress): 14-chunk plan, human-required
+  chunks deferred to the end. Chunks 1-4 (Supabase migration, job queue,
+  service layer, REST API) have committed spec+plan docs under
+  `docs/superpowers/specs/` and `docs/superpowers/plans/` but are NOT YET
+  IMPLEMENTED — current phase is planning only per user's /goal directive.
+  Next: chunk 5 (scheduling engine). Full detail in `CHECKPOINT_LAST.md`.
+  New Supabase project `claudeshorts` (nddlutmilajkqtoygmfi) created for
+  this; `adhdsat` project paused as part of the same decision.
 - BLOCKED on hardware: test the branch on the HOME SERVER (aiserver desktop,
   Nvidia P40). Server `192.168.1.178` is currently unreachable (incomplete ARP
   from a same-subnet host) — user is troubleshooting the Linux box (rebooted,
@@ -23,6 +31,12 @@
   instrumentation only (no stop/cancel, no change to what jobs do). See PLAN.md.
 
 ## Done
+- Fixed macOS/kitty launcher minimal-PATH failure: `start-dashboard.sh` now
+  prepends standard macOS local install paths and `find_python()` falls back to
+  `.venv/bin/python`, Homebrew, `/usr/local/bin`, and python.org framework
+  Python paths. Verified `./start-dashboard.sh` and `./start-dashboard.command`
+  under `PATH=/usr/bin:/bin:/usr/sbin:/sbin`; both served the dashboard with
+  HTTP 200 and were stopped cleanly.
 - LAN-accessible dashboard: `start-dashboard.sh` now binds to all interfaces by
   default (override with `CLAUDESHORTS_HOST=127.0.0.1`) and prints both the local
   and LAN URLs (auto-detected IP). `cli serve` already took `--host`; the launcher

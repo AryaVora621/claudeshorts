@@ -1,3 +1,91 @@
+# CHECKPOINT / RESUME REPORT - 2026-07-10 (goal.md platform rebuild — planning phase)
+
+Agent: Claude (Sonnet 5), branch `feature/carousel-wider-topics`.
+
+## Status: 4 of 14 chunks fully speced + planned (docs only, no implementation yet)
+
+User's goal.md describes a full platform rebuild (plugin providers, job
+queue, service layer, REST API, Telegram bot, scheduling, multi-channel
+publishing, Raspberry Pi deployment). Decomposed into 14 chunks (see
+`TASK_QUEUE.md` and this session's task list), human-required chunks
+(logins/API keys) pushed to the end per user instruction. Current /goal:
+"continue working and chunking out plans for this large project, pause
+only when needed to ask user or planning is done" — confirmed scope is
+**planning** (spec + plan docs), not implementation, until told otherwise.
+
+A cron job (`continue working` every 10 min) is active in this session to
+keep this loop going; each firing should pick up the next pending chunk.
+
+### Real infra changes made (not just docs)
+- Paused Supabase project `adhdsat` (rhhpshsyrvckouqtyeov) — unrelated to
+  this project, paused per user request.
+- Created new Supabase project **`claudeshorts`** (id `nddlutmilajkqtoygmfi`,
+  region `us-east-1`, free tier, $0/month) — this is the target datastore
+  for chunk 1's migration once implemented.
+
+### Chunks done (spec + plan committed, no code written yet)
+1. Supabase schema + migrate off SQLite — `docs/superpowers/specs/2026-07-10-chunk1-supabase-migration-design.md` + plan
+2. Job queue + state machine — `docs/superpowers/specs/2026-07-10-chunk2-job-queue-design.md` + plan
+3. Service layer extraction — `docs/superpowers/specs/2026-07-10-chunk3-service-layer-design.md` + plan
+4. REST API over services — `docs/superpowers/specs/2026-07-10-chunk4-rest-api-design.md` + plan
+
+### Next action
+Chunk 5: scheduling engine (immediate/scheduled/recurring/approval-gated
+publishing). Then chunks 6-9 (structured logging, LLM provider abstraction,
+more video styles, Contexto note), then deferred chunks 10-14 (publishing
+plugins, browser profiles, Telegram bot, Higgsfield/Veo, additional LLM
+keys) — these need API keys/logins from the user, per their explicit
+"leave human-required tasks for last" instruction.
+
+### Human decisions needed
+None blocking right now — next chunks proceed with reasonable defaults,
+flagging real decisions via AskUserQuestion as they come up (this has been
+the working pattern: DB access approach, data migration scope, cancel/pause
+depth, API auth, etc., each confirmed before writing the spec).
+
+---
+
+# CHECKPOINT / RESUME REPORT - 2026-06-10 (launcher PATH fix)
+
+Agent: Codex.
+
+## Status: fixed locally, ready for user test
+The macOS/kitty launcher failure was reproduced with a minimal Finder-like PATH:
+
+```text
+PATH=/usr/bin:/bin:/usr/sbin:/sbin ./start-dashboard.sh
+```
+
+Root cause: Python 3.13 was installed in normal macOS locations
+(`/opt/homebrew/bin`, `/usr/local/bin`, and the python.org framework path), but
+the launcher only checked command names visible through the inherited PATH. Some
+double-click or kitty launches do not load the user's shell profile, so the
+launcher reported that Python 3.11+ was missing even though it was installed.
+
+## What changed
+- `start-dashboard.sh` now prepends standard macOS local install paths to PATH
+  before probing tools.
+- `find_python()` now also checks `.venv/bin/python`, Homebrew Python paths,
+  `/usr/local/bin` Python paths, and python.org framework paths by absolute path.
+
+## Verified
+- `bash -n start-dashboard.command start-dashboard.sh`
+- Minimal-PATH `./start-dashboard.sh` on port 8765: found
+  `/opt/homebrew/bin/python3.13`, started the dashboard, and served `/` with
+  HTTP 200. The test server was stopped cleanly.
+- Minimal-PATH `./start-dashboard.command` on port 8766: found
+  `/opt/homebrew/bin/python3.13`, started the dashboard, and served `/` with
+  HTTP 200. The test server was stopped cleanly.
+
+## Next action
+User can run `./start-dashboard.command` or double-click it and test the
+dashboard normally.
+
+## Human decisions needed
+None for this launcher fix.
+
+---
+
 # CHECKPOINT / RESUME REPORT - 2026-06-02 (carousel deck in dashboard)
 
 Agent: Claude (Opus 4.8), branch `feature/carousel-wider-topics`.
