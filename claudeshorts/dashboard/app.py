@@ -176,6 +176,8 @@ def create_app() -> FastAPI:
             result = posts_service.approve_post(post_id)
         except ValueError:
             return _redirect("/review", err="post not found")
+        except FileNotFoundError as exc:
+            return _redirect("/review", err=str(exc))
         if result["exported"]:
             return _redirect("/review", msg=f"post {post_id} approved & exported")
         return _redirect(
@@ -294,9 +296,12 @@ def create_app() -> FastAPI:
         from ..services import posts_service
 
         when = (await _form(request)).get("scheduled_for", "").strip() or None
-        posts_service.schedule_post(post_id, when)
         where = request.headers.get("referer", "/posts")
         where = "/schedule" if "/schedule" in where else "/posts"
+        try:
+            posts_service.schedule_post(post_id, when)
+        except ValueError:
+            return _redirect(where, err="post not found")
         return _redirect(where, msg=(f"post {post_id} scheduled for {when}" if when
                                      else f"post {post_id} schedule cleared"))
 

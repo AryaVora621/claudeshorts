@@ -8,6 +8,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
+# Double-click launches and some terminal integrations do not load the user's
+# shell profile. Add the standard macOS local install paths before probing tools.
+export PATH="/opt/homebrew/bin:/usr/local/bin:/Library/Frameworks/Python.framework/Versions/Current/bin:$PATH"
+
 # Bind address: default to all interfaces so the dashboard is reachable from
 # other devices on your LAN (the desktop / home-server use case). Set
 # CLAUDESHORTS_HOST=127.0.0.1 to restrict it to this machine only.
@@ -45,9 +49,25 @@ find_python() {
   local cands=()
   [ -n "${PYTHON:-}" ] && cands+=("$PYTHON")
   cands+=(python3.13 python3.12 python3.11 python3 python)
+  # Finder and some terminal launchers start with a tiny PATH, so python.org
+  # or Homebrew installs can be present but invisible to command -v.
+  cands+=(.venv/bin/python)
+  cands+=(/opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11)
+  cands+=(/usr/local/bin/python3.13 /usr/local/bin/python3.12 /usr/local/bin/python3.11)
+  cands+=(/Library/Frameworks/Python.framework/Versions/Current/bin/python3)
+  cands+=(/Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13)
+  cands+=(/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12)
+  cands+=(/Library/Frameworks/Python.framework/Versions/3.11/bin/python3.11)
   local c
   for c in "${cands[@]}"; do
-    if py_ok "$c"; then command -v "$c"; return 0; fi
+    if py_ok "$c"; then
+      if [[ "$c" == */* ]]; then
+        printf '%s\n' "$c"
+      else
+        command -v "$c"
+      fi
+      return 0
+    fi
   done
   return 1
 }
