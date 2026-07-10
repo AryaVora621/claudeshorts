@@ -8,8 +8,9 @@ alive; the database is the fallback for history.
 
 from __future__ import annotations
 
-import sqlite3
 from typing import Any
+
+import psycopg
 
 # The columns a snapshot write touches (everything except id/started_at, which
 # are set on insert). Kept in one place so insert + update stay in sync.
@@ -20,45 +21,44 @@ _PROGRESS_COLS = (
 )
 
 
-def insert_job(conn: sqlite3.Connection, *, job_id: int, name: str) -> None:
+def insert_job(conn: psycopg.Connection, *, job_id: int, name: str) -> None:
     """Record a newly started job. ``job_id`` matches the in-memory job id."""
     conn.execute(
-        "INSERT OR REPLACE INTO jobs (id, name, status) VALUES (?, ?, 'running')",
+        "INSERT INTO jobs (id, name, status) VALUES (%s, %s, 'running') "
+        "ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, status = 'running'",
         (job_id, name),
     )
-    conn.commit()
 
 
-def save_snapshot(conn: sqlite3.Connection, job_id: int, snap: dict[str, Any]) -> None:
+def save_snapshot(conn: psycopg.Connection, job_id: int, snap: dict[str, Any]) -> None:
     """Persist the current state of a job (progress, log, status, finish time)."""
-    cols = ", ".join(f"{c} = ?" for c in _PROGRESS_COLS)
+    cols = ", ".join(f"{c} = %s" for c in _PROGRESS_COLS)
     conn.execute(
-        f"UPDATE jobs SET {cols} WHERE id = ?",
+        f"UPDATE jobs SET {cols} WHERE id = %s",
         tuple(snap.get(c) for c in _PROGRESS_COLS) + (job_id,),
     )
-    conn.commit()
 
 
-def get_job(conn: sqlite3.Connection, job_id: int) -> dict[str, Any] | None:
-    row = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+def get_job(conn: psycopg.Connection, job_id: int) -> dict[str, Any] | None:
+    row = conn.execute("SELECT * FROM jobs WHERE id = %s", (job_id,)).fetchone()
     return dict(row) if row else None
 
 
-def recent_jobs(conn: sqlite3.Connection, limit: int = 50) -> list[dict[str, Any]]:
+def recent_jobs(conn: psycopg.Connection, limit: int = 50) -> list[dict[str, Any]]:
     """Most recent jobs, newest first (for the dashboard list)."""
     rows = conn.execute(
-        "SELECT * FROM jobs ORDER BY id DESC LIMIT ?", (int(limit),)
+        "SELECT * FROM jobs ORDER BY id DESC LIMIT %s", (int(limit),)
     ).fetchall()
     return [dict(r) for r in rows]
 
 
-def max_id(conn: sqlite3.Connection) -> int:
+def max_id(conn: psycopg.Connection) -> int:
     """Largest job id on record, or 0 if the table is empty."""
     row = conn.execute("SELECT COALESCE(MAX(id), 0) AS m FROM jobs").fetchone()
     return int(row["m"])
 
 
-def mark_running_interrupted(conn: sqlite3.Connection) -> int:
+def mark_running_interrupted(conn: psycopg.Connection) -> int:
     """Flag jobs left `running` by a dead process as `interrupted`. Startup-only.
 
     A job only runs inside a live server process; if a row is still `running`
@@ -66,8 +66,7 @@ def mark_running_interrupted(conn: sqlite3.Connection) -> int:
     the number of rows updated.
     """
     cur = conn.execute(
-        "UPDATE jobs SET status = 'interrupted', finished_at = datetime('now') "
+        "UPDATE jobs SET status = 'interrupted', finished_at = now() "
         "WHERE status = 'running'"
     )
-    conn.commit()
     return cur.rowcount
