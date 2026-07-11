@@ -14,6 +14,6 @@ router = APIRouter(tags=["profiles"])
 @router.get("/profiles")
 def list_profiles() -> list[dict]:
     return [
-        {"slug": p["slug"], "platform": p["platform"], "login_health": p["login_health"]}
+        {"slug": p["slug"], "platforms": p.get("platforms", []), "login_health": p["login_health"]}
         for p in profiles.list_profiles()
     ]
