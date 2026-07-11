@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  :root {
+    --primary: #76B900;
+    --secondary: #0A0A0A;
+    --accent: #FFFFFF;
+    --ink: #FFFFFF;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; }
+  body {
+    font-family: "Georgia", "Iowan Old Style", serif;
+    background: var(--secondary);
+    color: var(--ink);
+    position: relative;
+  }
+  #bg { position: absolute; inset: 0;
+    background: linear-gradient(160deg, var(--secondary) 0%, var(--secondary) 70%, var(--primary) 200%);
+    opacity: 0.9; }
+
+  #stage { position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 160px 110px; gap: 44px; }
+
+  #kicker { font-size: 28px; font-weight: 400; letter-spacing: 6px;
+    text-transform: uppercase; color: var(--primary);
+    border-top: 2px solid var(--primary); padding-top: 20px; width: fit-content; }
+
+  #headline { font-size: 88px; font-weight: 400; line-height: 1.15;
+    letter-spacing: -1px; font-style: italic; }
+
+  #bullets { list-style: none; display: flex; flex-direction: column; gap: 34px;
+    margin-top: 12px; }
+  #bullets li { font-size: 42px; font-weight: 400; line-height: 1.35;
+    display: flex; gap: 22px; align-items: flex-start; opacity: 0; }
+  #bullets li::before { content: "—"; flex: 0 0 auto; color: var(--primary);
+    font-weight: 700; }
+
+  #handle { position: absolute; bottom: 70px; left: 0; right: 0;
+    text-align: center; font-size: 28px; font-weight: 400;
+    letter-spacing: 2px; opacity: 0.55; }
+
+  #outro { position: absolute; inset: 0; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 48px; }
+  #outro img { width: 320px; height: 320px; object-fit: contain; border-radius: 24px; }
+  #outro .name { font-size: 56px; font-weight: 400; }
+  #outro .cta { font-size: 36px; font-weight: 400; color: var(--primary); font-style: italic; }
+
+  body.light { --ink: #0A0A0A; }
+</style>
+</head>
+<body>
+  <div id="bg"></div>
+  <div id="stage">
+    <div id="kicker" id="kicker-text">ANALYSIS</div>
+    <h1 id="headline"><span id="headline-text"></span></h1>
+    <ul id="bullets"></ul>
+  </div>
+  <div id="outro">
+    <img id="outro-logo" alt="" />
+    <div class="name" id="outro-name"></div>
+    <div class="cta" id="outro-cta"></div>
+  </div>
+  <div id="handle"></div>
+
+<script>
+const S = { slides: [], theme: null, channel: null };
+const el = (id) => document.getElementById(id);
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const easeOut = (t) => 1 - Math.pow(1 - clamp01(t), 3);
+
+window.__init = function (spec) {
+  S.slides = spec.slides || [];
+  S.theme = spec.theme || {};
+  S.channel = spec.channel || {};
+  const t = S.theme;
+  const root = document.documentElement.style;
+  if (t.primary) root.setProperty("--primary", t.primary);
+  if (t.secondary) root.setProperty("--secondary", t.secondary);
+  if (t.accent) root.setProperty("--accent", t.accent);
+  if (t.mood === "light") document.body.classList.add("light");
+  el("handle").textContent = S.channel.handle || "";
+  if (S.channel.logo_data_uri) el("outro-logo").src = S.channel.logo_data_uri;
+  el("outro-name").textContent = S.channel.name || "";
+  el("outro-cta").textContent = "Follow for daily tech & AI";
+  return S.slides.length;
+};
+
+window.__render = function (i, localMs, globalMs) {
+  const slide = S.slides[i] || {};
+  const isOutro = i === S.slides.length - 1 && !!S.channel.logo_data_uri;
+
+  el("outro").style.display = isOutro ? "flex" : "none";
+  el("stage").style.display = isOutro ? "none" : "flex";
+  if (isOutro) {
+    const p = easeOut(localMs / 900);
+    el("outro").style.opacity = p;
+    return;
+  }
+
+  document.getElementById("kicker").textContent = (slide.kicker || (i === 0 ? "ANALYSIS" : "CONTEXT"));
+  el("headline-text").textContent = slide.headline || "";
+  const hp = easeOut(localMs / 900);
+  const h = el("headline");
+  h.style.opacity = hp;
+  h.style.transform = `translateY(${(1 - hp) * 24}px)`;
+
+  const ul = el("bullets");
+  const bullets = slide.bullets || [];
+  if (ul.dataset.k !== i + ":" + bullets.length) {
+    ul.innerHTML = "";
+    bullets.forEach((b) => { const li = document.createElement("li");
+      li.textContent = b; ul.appendChild(li); });
+    ul.dataset.k = i + ":" + bullets.length;
+  }
+  [...ul.children].forEach((li, k) => {
+    const bp = easeOut((localMs - 700 - k * 260) / 700);
+    li.style.opacity = bp;
+    li.style.transform = `translateY(${(1 - bp) * 20}px)`;
+  });
+};
+</script>
+</body>
+</html>
