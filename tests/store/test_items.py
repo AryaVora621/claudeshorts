@@ -9,9 +9,9 @@ def test_insert_item_then_dedupe():
             "source": "test", "url": "https://a", "title": "Title A",
             "summary": "sum", "published_at": None, "content_hash": "hash-a",
         }
-        assert items.insert_item(conn, item) is True
-        assert items.insert_item(conn, item) is False
-        assert items.count_items(conn) == 1
+        assert items.insert_item(conn, item, profile_id=1) is True
+        assert items.insert_item(conn, item, profile_id=1) is False
+        assert items.count_items(conn, profile_id=1) == 1
 
 
 def test_get_item_and_latest_items():
@@ -19,7 +19,7 @@ def test_get_item_and_latest_items():
         items.insert_item(conn, {
             "source": "test", "url": None, "title": "T1", "summary": None,
             "published_at": None, "content_hash": "h1",
-        })
+        }, profile_id=1)
         row_id = conn.execute("SELECT id FROM items WHERE content_hash = 'h1'").fetchone()["id"]
         got = items.get_item(conn, row_id)
         assert got["title"] == "T1"
@@ -34,7 +34,7 @@ def test_get_items_preserves_order():
             items.insert_item(conn, {
                 "source": "test", "url": None, "title": h, "summary": None,
                 "published_at": None, "content_hash": h,
-            })
+            }, profile_id=1)
             ids.append(conn.execute(
                 "SELECT id FROM items WHERE content_hash = %s", (h,)
             ).fetchone()["id"])
@@ -56,7 +56,30 @@ def test_recent_items_filters_by_days():
         items.insert_item(conn, {
             "source": "test", "url": None, "title": "Recent", "summary": None,
             "published_at": None, "content_hash": "recent-1",
-        })
-        recent = items.recent_items(conn, days=1)
+        }, profile_id=1)
+        recent = items.recent_items(conn, days=1, profile_id=1)
         assert len(recent) == 1
         assert recent[0]["title"] == "Recent"
+
+
+def test_insert_item_scopes_dedupe_by_profile():
+    with db.connect() as conn:
+        item = {
+            "source": "hn", "url": "https://example.com/a", "title": "A",
+            "summary": "s", "published_at": None, "content_hash": "hash-a",
+        }
+        assert items.insert_item(conn, item, profile_id=1) is True
+        assert items.insert_item(conn, item, profile_id=2) is True
+        assert items.insert_item(conn, item, profile_id=1) is False
+
+
+def test_recent_items_scoped_to_profile():
+    with db.connect() as conn:
+        base = {
+            "source": "test", "url": None, "title": "T", "summary": None,
+            "published_at": None,
+        }
+        items.insert_item(conn, {**base, "content_hash": "h1"}, profile_id=1)
+        items.insert_item(conn, {**base, "content_hash": "h2"}, profile_id=2)
+        profile_1_items = items.recent_items(conn, days=7, profile_id=1)
+        assert {i["content_hash"] for i in profile_1_items} == {"h1"}

@@ -36,8 +36,10 @@ def _is_recent(published_at: str | None, cutoff: datetime | None) -> bool:
         return True
 
 
-def run_ingest(since: str | None = None, limit: int | None = None) -> dict[str, Any]:
-    """Fetch all sources and store fresh, non-duplicate items.
+def run_ingest(
+    profile_id: int, since: str | None = None, limit: int | None = None,
+) -> dict[str, Any]:
+    """Fetch all sources and store fresh, non-duplicate items for `profile_id`.
 
     Returns a stats dict (fetched / stored / duplicates / skipped_old, plus a
     per-source breakdown and the resulting total item count).
@@ -71,13 +73,13 @@ def run_ingest(since: str | None = None, limit: int | None = None) -> dict[str, 
                 if not _is_recent(item["published_at"], cutoff):
                     stats["skipped_old"] += 1
                     continue
-                if insert_item(conn, item):
+                if insert_item(conn, item, profile_id):
                     stats["stored"] += 1
                     per["stored"] += 1
                 else:
                     stats["duplicates"] += 1
             stats["by_source"][name] = per
         conn.commit()
-        stats["total_items"] = count_items(conn)
+        stats["total_items"] = count_items(conn, profile_id)
 
     return stats

@@ -7,7 +7,7 @@ def _mk_item(conn, content_hash):
     items.insert_item(conn, {
         "source": "test", "url": None, "title": "T", "summary": None,
         "published_at": None, "content_hash": content_hash,
-    })
+    }, profile_id=1)
     return conn.execute(
         "SELECT id FROM items WHERE content_hash = %s", (content_hash,)
     ).fetchone()["id"]

@@ -10,9 +10,13 @@ from typing import Any
 import psycopg
 
 
-def latest_run_for_date(conn: psycopg.Connection, run_date: str) -> dict[str, Any] | None:
+def latest_run_for_date(
+    conn: psycopg.Connection, run_date: str, profile_id: int
+) -> dict[str, Any] | None:
     row = conn.execute(
-        "SELECT * FROM runs WHERE run_date = %s ORDER BY id DESC LIMIT 1", (run_date,)
+        "SELECT * FROM runs WHERE run_date = %s AND profile_id = %s "
+        "ORDER BY id DESC LIMIT 1",
+        (run_date, profile_id),
     ).fetchone()
     return dict(row) if row else None
 
@@ -25,10 +29,11 @@ def recent_runs(conn: psycopg.Connection, limit: int = 50) -> list[dict[str, Any
     return [dict(r) for r in rows]
 
 
-def start_run(conn: psycopg.Connection, run_date: str) -> int:
+def start_run(conn: psycopg.Connection, run_date: str, profile_id: int) -> int:
     row = conn.execute(
-        "INSERT INTO runs (run_date, status) VALUES (%s, 'running') RETURNING id",
-        (run_date,),
+        "INSERT INTO runs (run_date, status, profile_id) VALUES (%s, 'running', %s) "
+        "RETURNING id",
+        (run_date, profile_id),
     ).fetchone()
     return int(row["id"])
 
