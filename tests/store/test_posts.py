@@ -53,3 +53,23 @@ def test_recent_posts_and_all_posts():
         _mk(conn)
         assert len(posts.recent_posts(conn, days=1)) == 2
         assert len(posts.all_posts(conn, limit=200)) == 2
+
+
+def test_insert_post_persists_layout():
+    with db.connect() as conn:
+        post_id = posts.insert_post(
+            conn, item_ids=[1], status="draft", title="T",
+            slides=[], theme={"subject": "x"}, captions={}, layout="editorial",
+        )
+        post = posts.get_post(conn, post_id)
+        assert post["layout"] == "editorial"
+
+
+def test_insert_post_defaults_layout_to_slideshow():
+    with db.connect() as conn:
+        post_id = posts.insert_post(
+            conn, item_ids=[1], status="draft", title="T",
+            slides=[], theme={"subject": "x"}, captions={},
+        )
+        post = posts.get_post(conn, post_id)
+        assert post["layout"] == "slideshow"

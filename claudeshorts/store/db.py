@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS posts (
     slides_json   JSONB,
     theme_json    JSONB,
     captions_json JSONB,
+    layout        TEXT        DEFAULT 'slideshow',
     review_note   TEXT,
     published_at  TEXT,
     scheduled_for TEXT,
@@ -102,6 +103,10 @@ CREATE TABLE IF NOT EXISTS jobs (
     started_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     finished_at      TIMESTAMPTZ
 );
+
+-- Upgrade pre-chunk-2 databases in place with ADD COLUMN IF NOT EXISTS.
+-- Existing posts get layout set to slideshow (default).
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS layout TEXT DEFAULT 'slideshow';
 
 -- Upgrade pre-chunk-2 databases in place with ADD COLUMN IF NOT EXISTS.
 -- Existing jobs keep their old status values (lowercase); Task 8 dashboard

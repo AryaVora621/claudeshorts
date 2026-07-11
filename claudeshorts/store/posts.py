@@ -13,6 +13,7 @@ def _row_to_post(row: dict[str, Any]) -> dict[str, Any]:
     d["slides"] = d.get("slides_json")
     d["theme"] = d.get("theme_json")
     d["captions"] = d.get("captions_json")
+    d["layout"] = d.get("layout") or "slideshow"
     return d
 
 
@@ -25,16 +26,17 @@ def insert_post(
     captions: Any,
     theme: Any = None,
     status: str = "draft",
+    layout: str = "slideshow",
 ) -> int:
     """Insert a generated post; returns the new post id."""
     row = conn.execute(
         "INSERT INTO posts "
-        "(item_ids, status, title, slides_json, theme_json, captions_json) "
-        "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+        "(item_ids, status, title, slides_json, theme_json, captions_json, layout) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
         (
             psycopg.types.json.Jsonb(item_ids), status, title,
             psycopg.types.json.Jsonb(slides), psycopg.types.json.Jsonb(theme),
-            psycopg.types.json.Jsonb(captions),
+            psycopg.types.json.Jsonb(captions), layout,
         ),
     ).fetchone()
     return int(row["id"])
