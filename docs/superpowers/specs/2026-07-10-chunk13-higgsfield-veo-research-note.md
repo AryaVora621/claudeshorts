@@ -137,3 +137,147 @@ No code, no plan document, no API keys obtained, no Flow automation
 built — per the user's confirmed "research now" posture. Revisit only
 when the user decides to proceed, and treat that as its own new
 chunk/spec cycle rather than retroactively expanding this note.
+
+## Addendum (research deep-dive on flow_browser automation)
+
+Follow-up research specifically on the `flow_browser` idea floated in the
+addendum above, with real web evidence rather than assumption. Same "research
+now" posture — no code touched.
+
+### 1. Technical feasibility
+
+There **is** real-world precedent — this isn't speculative. Multiple Chrome
+extensions exist today purpose-built to batch-automate Google Flow: "VEO
+Automation," "Flow Automation," "Auto Flow Generator," "AutoFlow," plus at
+least two public GitHub repos (`trgkyle/veo-automation-user-guide`,
+`Shivanshu85/Google-Flow-Automation`) documenting the pattern — queue
+hundreds of prompts from a spreadsheet, submit N concurrently, poll for
+completion, auto-download. So driving Flow's UI programmatically is a solved
+problem in the wild.
+
+The important nuance is **how** they solve it, and it's not the chunk-11
+pattern. These are all **Chrome extensions running inside a normal, real
+Chrome session** (content scripts clicking real DOM), not headless
+Playwright/Selenium driving a detached browser. That distinction matters:
+one freelance job posting found during this research (Upwork, March 2026,
+"Fix Playwright Automation for Google Flow AI Video Generator") describes
+exactly the chunk-11-style approach failing — image generation worked but
+**video generation specifically broke**, with the poster's own diagnosis
+being that Flow's prompt editor is a Slate.js rich-text component (not a
+plain `<textarea>`, so naive `fill()` calls don't work reliably) and that
+Google "may be detecting headless browsers and blocking the request." That
+is a direct, named failure mode for the exact approach this note proposed
+(chunk 11's `session.py`/`errors.py`/`wait.py` scaffolding is built around
+Playwright, effectively meaning headed-but-automated or headless — both are
+in the risk zone these reports describe).
+
+Even the working extension-based tools acknowledge the platform pushes
+back under sustained automated use: the `veo-automation-user-guide` repo has
+a troubleshooting section for an **"Unusual Activity / Verification Error"**
+and advises users to test whether their account is flagged by generating a
+clip manually — i.e. Google's abuse detection does trigger on these tools in
+practice, it just doesn't always block them outright. Mitigations described
+(randomized delays, capped concurrency, avoiding "peak hours") are the same
+category of workaround as any anti-bot evasion — they reduce detection odds,
+they don't eliminate the risk.
+
+**Bottom line on feasibility:** batch UI automation of Flow is demonstrably
+possible, but the working examples in the wild use a different technical
+approach (extension-in-real-browser) than what chunk 11 built, video
+generation is the specific mode reported to break under a from-scratch
+Playwright approach, and account-level "unusual activity" flags are a known,
+acknowledged occurrence even for the tools that do work.
+
+### 2. ToS / account-risk considerations
+
+This is the part worth being direct about rather than waving through.
+
+Google's general Terms of Service prohibit accessing or using its services
+"through the use of any automated means (such as robots, spiders or
+scrapers)" without explicit permission, and the Gemini API's own Prohibited
+Use Policy and abuse-monitoring docs describe active, ongoing automated
+detection of misuse, with enforcement escalating from usage restrictions up
+to **closing the Google account entirely** for serious or repeated
+violations. Flow sits on the consumer Gemini/Google AI Pro side of that
+line, not a developer API key — meaning the account at risk is the user's
+**personal Google account** (the same one likely tied to Gmail, Drive,
+possibly the browser-profile publishing work from chunk 11), not an
+isolated, disposable API credential.
+
+That's the real risk-shape difference from the Veo API path: a suspended or
+restricted Vertex AI API key is a billing/access inconvenience you can
+recreate. A flagged or suspended personal Google account for "automated
+means" use is a much higher blast radius, and it's the exact behavior
+pattern (recurring, scheduled, unattended, multi-clip-per-run) that a daily
+content pipeline would produce — this is not a one-off manual convenience
+script, it's sustained automation against a ToS clause that names automation
+specifically. Being honest: this is a real risk the user should weigh, not
+one to rubber-stamp away because third parties currently get away with it.
+Extensions doing this today are operating in a gray zone that Google's own
+enforcement docs say it actively monitors for — "other people haven't been
+banned yet" is not the same as "this is compliant."
+
+### 3. Updated pricing/quota check
+
+Both numbers in this note have moved since it was written; corrections below.
+
+- **Veo API pricing**: the previous $0.15–0.40/sec range undersold how cheap
+  the low end has gotten and slightly overstated the low end's floor. Current
+  figures found: **Lite ~$0.03–0.05/sec** (720p, no audio), **Fast
+  ~$0.10–0.15/sec**, **Standard/Quality ~$0.20–0.40/sec**, with a 4K premium
+  tier now up to **$0.30–0.60/sec**. The original note's cost-analysis math
+  (using $0.15/sec Fast) still holds as a reasonable planning number, but
+  Fast can run as low as $0.10/sec, making a small opt-in budget cheaper than
+  the note implied.
+- **Google AI Pro/Ultra Flow quota**: this is the bigger correction. The
+  previous addendum's "~3 Veo Fast generations/day" framing is **stale** —
+  Google has since moved Flow to a **monthly credit pool** instead of a daily
+  allowance: **Pro ($19.99/mo) = 1,000 Flow credits/month**, **Ultra
+  ($99.99/mo... now listed as $100/mo tier) = 10,000/month**, and a higher
+  **$200/mo Ultra tier = 25,000/month**. Veo 3.1 Fast costs **20 credits/clip**
+  on Pro (10 credits/clip on Ultra), which works out to **~50 Fast clips per
+  month on Pro** (not ~90/month as the old "3/day" framing implied) and
+  **~500–2,500/month on Ultra** depending on tier. Free (non-subscriber)
+  accounts separately get 50 Flow credits/day that reset on first use and do
+  not roll over — irrelevant here since the user already pays for Pro.
+  Net effect: the subscription's *usable* quota for this use case is somewhat
+  **smaller** than the last addendum assumed, but still comfortably covers a
+  low-volume opt-in use case (a handful of hero clips a month), just not
+  meaningfully more than that.
+
+### 4. Recommendation
+
+**(b) — skip Flow browser automation, use the paid Vertex AI Veo API with a
+small opt-in budget (e.g. one hero clip per top post per week), and hold off
+on `flow_browser` entirely rather than prototype it.**
+
+Reasoning:
+
+- The volume this note has always recommended as sane (a handful of hero
+  clips per week, not per-slide-per-post) is **cheap enough on the metered
+  API** that the "free via subscription" appeal of `flow_browser` mostly
+  evaporates. One 8-second Fast clip at $0.10–0.15/sec is roughly $0.80–1.20;
+  four a month is under $5. That's not a budget decision worth risking a
+  personal Google account over.
+- The technical case for `flow_browser` is weaker than the prior addendum
+  assumed: the working real-world examples use a different automation
+  technique (browser extension in a live session) than what chunk 11 built,
+  and the one concrete report of someone trying the chunk-11-style approach
+  found video generation specifically breaking, with headless-detection as
+  the suspected cause.
+- The account-risk asymmetry is the deciding factor: the Veo API path risks
+  a disposable, recreatable API credential; the Flow path risks the user's
+  actual Google account, on a ToS clause that explicitly names automated
+  access, for a workload (recurring, scheduled, multi-clip-per-run) that is
+  the textbook shape of what that clause is written to catch.
+- If the user later wants literally zero marginal cost and is comfortable
+  eating the account risk knowingly, this is revisitable — but that should
+  be an explicit, informed decision at that time, not a default path taken
+  because it looked cheaper on paper.
+
+This doesn't change the note's core `VideoClipProvider` integration
+shape — a `veo_api` implementation slots into the same abstraction already
+described above (`generate_clip(prompt, duration) -> Path`, opt-in,
+defaulting to off, existing static-template rendering untouched for
+everyone else). It just settles which concrete implementation to build
+first, whenever this chunk is picked back up: `veo_api`, not `flow_browser`.

@@ -1,0 +1,44 @@
+{
+  "asset_name": "fork.ai — YouTube Channel Banner",
+  "use": "YouTube channel art",
+  "canvas": "2560x1440px, 16:9 aspect ratio — keep all important content inside the centered safe zone (roughly the middle 1546x423px band, since YouTube crops the banner differently on desktop/TV/mobile)",
+  "engine": "Google Gemini image generation (Imagen)",
+  "how_to_use": "Paste `prompt_text` directly into Gemini as the image prompt. `prompt_spec` is the same content broken into fields for reference/tweaking — Gemini reads it as plain text, not a parsed schema.",
+
+  "brand_constants": {
+    "background": "#111111 (flat near-black, absolutely no gradient or vignette)",
+    "primary_accent": "#A855F7 (flat matte purple, single solid fill, no gradient)",
+    "shadow_accent": "#6D28D9 (darker flat purple, hard-edged offset shadow duplicate only, never blurred)",
+    "outline_color": "#F5F0FF (near-white, single continuous outline around the whole icon shape)",
+    "typography": "JetBrains Mono or equivalent geometric monospace, extra-bold/black weight, terminal-inspired but NOT glowing or neon",
+    "forbidden_style_terms": ["radial glow", "neon glow", "gradient mesh", "glassmorphism", "bokeh", "lens flare", "3D render", "photorealistic", "metallic chrome", "drop shadow blur", "soft shadow", "vaporwave", "cyberpunk city", "particles", "sparkle"],
+    "required_style_terms": ["flat vector illustration", "hard-edged geometric shapes", "sticker-style outline", "rounded rectangle corners", "high contrast", "minimalist app-icon quality like Notion, Linear, or Vercel's icon set"]
+  },
+
+  "prompt_text": "A wide flat vector brand banner, 2560x1440px, on a perfectly solid flat near-black background (#111111, no gradient, no vignette, no texture), designed so all key content sits inside a centered horizontal safe-zone band roughly 1546px wide and 423px tall in the middle of the frame — nothing important near the far edges. Inside that safe zone, left-aligned as a group: on the left, a small flat vector icon of a literal four-pronged dinner fork — four equal vertical rounded-rectangle tines joined by a horizontal rounded-rectangle neck bar, connecting to one vertical rounded-rectangle handle — filled in flat matte purple (#A855F7), with one continuous near-white (#F5F0FF) outline around the whole silhouette (no internal seams between tines/neck/handle), and a hard offset flat shadow duplicate in dark purple (#6D28D9) behind it, crisp edge, no glow, no blur. Immediately to the right of the icon, bold extra-heavy monospace text reading 'fork.ai' — the word 'fork' and letters 'ai' in near-white (#F5F0FF), with the single period between them highlighted in the same flat purple (#A855F7) as the icon, set in a JetBrains-Mono-style geometric monospace font, tightly kerned, no glow or drop shadow on the text itself. Below the title, a single line of smaller monospace text in muted gray (#B8B8B8): 'AI & tech news, forked daily.' preceded by a small purple '>' terminal-prompt style arrow glyph in #A855F7. The entire composition is flat, high-contrast, and minimal — no glow, no gradient, no lens flare, no particle effects, no photographic elements, no additional graphics. The right two-thirds of the canvas remains empty solid #111111 background (this area gets cropped/obscured by YouTube's UI on different devices).",
+
+  "prompt_spec": {
+    "background": { "color": "#111111", "treatment": "flat solid, no gradient" },
+    "safe_zone": { "approx_size": "1546x423px", "position": "horizontally and vertically centered in the 2560x1440 canvas", "rule": "all logo + text content must stay inside this band" },
+    "left_element": {
+      "object": "same 4-pronged fork icon as the logo asset, scaled down, positioned left-aligned inside the safe zone",
+      "fill_color": "#A855F7",
+      "outline": "single continuous #F5F0FF outline around the whole merged silhouette, no per-segment seams",
+      "shadow": "hard offset #6D28D9 silhouette duplicate, crisp edge, no blur"
+    },
+    "title_text": {
+      "content": "fork.ai",
+      "font": "JetBrains Mono or equivalent geometric monospace, extra-bold/black weight",
+      "color_main": "#F5F0FF",
+      "color_period_accent": "#A855F7 (only the '.' between fork and ai)",
+      "treatment": "flat solid fill, no glow, no shadow, tight negative letter-spacing"
+    },
+    "subtitle_text": {
+      "content": "> AI & tech news, forked daily.",
+      "color": "#B8B8B8 for the text, #A855F7 for the leading '>' glyph",
+      "font": "same monospace family, regular/medium weight, smaller size than title"
+    },
+    "layout": "icon + title stacked/aligned with subtitle beneath title, all left-aligned as one group inside the safe zone, generous empty negative space to the right",
+    "negative_prompt": "no gradients, no glow, no neon, no blur, no lens flare, no photographic background, no extra bullet lines, no extra taglines, no watermark, no stock-photo texture, no vignette"
+  }
+}

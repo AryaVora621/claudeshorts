@@ -1,0 +1,43 @@
+{
+  "asset_name": "fork.ai — Logo / Profile Picture",
+  "use": "Square profile picture for YouTube / Instagram / TikTok",
+  "canvas": "1024x1024px, 1:1 aspect ratio",
+  "engine": "Google Gemini image generation (Imagen)",
+  "how_to_use": "Paste `prompt_text` directly into Gemini as the image prompt. `prompt_spec` is the same content broken into fields for reference/tweaking — Gemini reads it as plain text, not a parsed schema.",
+
+  "brand_constants": {
+    "background": "#111111 (flat near-black, absolutely no gradient or vignette)",
+    "primary_accent": "#A855F7 (flat matte purple, single solid fill, no gradient)",
+    "shadow_accent": "#6D28D9 (darker flat purple, hard-edged offset shadow duplicate only, never blurred)",
+    "outline_color": "#F5F0FF (near-white, single continuous outline around the whole shape)",
+    "forbidden_style_terms": ["radial glow", "neon glow", "gradient mesh", "glassmorphism", "bokeh", "lens flare", "3D render", "photorealistic", "metallic chrome", "drop shadow blur", "soft shadow", "vaporwave", "cyberpunk city", "particles", "sparkle"],
+    "required_style_terms": ["flat vector illustration", "hard-edged geometric shapes", "sticker-style outline", "rounded rectangle corners", "high contrast", "minimalist app-icon quality like Notion, Linear, or Vercel's icon set"]
+  },
+
+  "prompt_text": "A minimalist flat vector app icon on a perfectly solid, flat near-black background (#111111, absolutely no gradient, no vignette, no texture). Centered in the frame is a single literal four-pronged dinner fork, viewed head-on and upright, rendered as a geometric silhouette built from four vertical rounded-rectangle tines of equal width and height, joined by a horizontal rounded-rectangle neck bar, connecting down into a single vertical rounded-rectangle handle. The fork is drawn in one flat matte purple (#A855F7), no gradient, no shading within the shape itself. The entire fork silhouette has a single continuous, uniform-thickness outline in near-white (#F5F0FF) tracing its outer boundary as one unbroken line — the outline must wrap the whole fork as one shape, NOT trace each tine or segment separately, so there are no visible seam lines where the tines meet the neck or where the neck meets the handle. Behind the outlined fork, offset down and to the right by a small fixed distance, is a solid, perfectly flat, hard-edged silhouette duplicate of the exact same fork shape in a darker purple (#6D28D9) — this is a hard offset shadow with a crisp edge, absolutely no blur, no soft falloff, no transparency gradient. The overall look is a polished, professional flat sticker-style app icon, similar in production quality to a Notion, Linear, or Vercel icon — geometric, confident, a little playful, but never cartoonish or organic. Corners on the tines, neck, and handle are subtly rounded (not sharp right angles, not fully pill-shaped). Composition: the fork occupies roughly the center 45% of the canvas height, comfortably padded on all sides, perfectly centered horizontally. No text, no watermark, no additional icons, no background pattern, no realistic lighting, no glow of any kind.",
+
+  "prompt_spec": {
+    "background": { "color": "#111111", "treatment": "flat solid, no gradient, no vignette, no noise/texture" },
+    "subject": {
+      "object": "literal 4-pronged dinner fork",
+      "orientation": "upright, head-on, symmetrical",
+      "construction": "4 equal vertical rounded-rect tines -> 1 horizontal rounded-rect neck bar -> 1 vertical rounded-rect handle, all merged into one silhouette",
+      "fill_color": "#A855F7 flat matte, single solid fill, no internal shading or gradient",
+      "corner_treatment": "subtly rounded rectangle corners on every segment, not sharp, not fully pill/capsule shaped"
+    },
+    "outline": {
+      "color": "#F5F0FF",
+      "rule": "one single continuous stroke around the OUTER silhouette of the whole merged fork shape only — must NOT appear as separate outlines around each tine/segment, no visible seams at internal joints",
+      "thickness": "uniform, medium weight, crisp vector edge (no anti-aliased blur, no soft edge)"
+    },
+    "shadow": {
+      "type": "hard offset silhouette duplicate, not a blurred drop shadow",
+      "color": "#6D28D9",
+      "offset": "down and to the right, small fixed distance, same rotation/scale as main shape",
+      "edge": "crisp, 100% opacity, no transparency falloff, no blur radius"
+    },
+    "composition": { "subject_scale": "~45% of canvas height", "alignment": "centered horizontally and vertically with even padding" },
+    "art_style_reference": "flat vector app icon, sticker-style outline, quality bar of Notion/Linear/Vercel icon sets",
+    "negative_prompt": "no gradients, no glow, no neon, no blur, no soft shadow, no bokeh, no 3D render, no photorealism, no metallic or glass texture, no text, no watermark, no extra tines, no curved organic fork-head shape like a fork emoji, no background pattern, no vignette"
+  }
+}

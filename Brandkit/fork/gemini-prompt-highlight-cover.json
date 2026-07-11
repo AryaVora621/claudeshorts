@@ -1,0 +1,30 @@
+{
+  "asset_name": "fork.ai — Instagram Story Highlight Cover",
+  "use": "Instagram Story highlight cover (icon only, no text) — final asset needs a transparent background, so generate on a solid, easily-keyable flat background and remove it afterward",
+  "canvas": "400x400px, 1:1 aspect ratio",
+  "engine": "Google Gemini image generation (Imagen)",
+  "how_to_use": "Paste `prompt_text` directly into Gemini as the image prompt. `prompt_spec` is the same content broken into fields for reference/tweaking — Gemini reads it as plain text, not a parsed schema. After generation, remove the flat white background before using it in Instagram (see post_processing_note).",
+
+  "brand_constants": {
+    "primary_accent": "#A855F7 (flat matte purple, single solid fill, no gradient)",
+    "shadow_accent": "#6D28D9 (darker flat purple, hard-edged offset shadow duplicate only, never blurred)",
+    "outline_color": "#F5F0FF (near-white, single continuous outline around the whole icon shape)",
+    "forbidden_style_terms": ["radial glow", "neon glow", "gradient mesh", "glassmorphism", "bokeh", "lens flare", "3D render", "photorealistic", "metallic chrome", "drop shadow blur", "soft shadow", "vaporwave", "cyberpunk city", "particles", "sparkle"],
+    "required_style_terms": ["flat vector illustration", "hard-edged geometric shapes", "sticker-style outline", "rounded rectangle corners", "high contrast", "minimalist app-icon quality like Notion, Linear, or Vercel's icon set"]
+  },
+
+  "prompt_text": "A single flat vector icon, centered and cropped tightly, of a literal four-pronged dinner fork: four equal vertical rounded-rectangle tines joined by a horizontal rounded-rectangle neck bar, connecting to one vertical rounded-rectangle handle below, all merged into one silhouette. Fill color flat matte purple (#A855F7), no gradient, no internal shading. One single continuous near-white (#F5F0FF) outline traces the outer boundary of the whole merged shape only, with no visible seams at the internal joints between tines/neck/handle. A hard-edged, fully opaque, offset silhouette shadow duplicate of the same shape in dark purple (#6D28D9) sits behind it, offset down and to the right by a small fixed distance — crisp edge, no blur, no soft falloff. Background: a single, perfectly flat, solid pure white (#FFFFFF) fill with absolutely no texture, gradient, shadow, or pattern, so the background can be cleanly removed with a chroma/color-key tool afterward. No text, no watermark, no additional shapes, no glow, no vignette. The icon is scaled to occupy about 55-60% of the canvas height, centered.",
+
+  "prompt_spec": {
+    "background": { "color": "#FFFFFF flat solid", "purpose": "chroma-key removable stand-in for a real transparent background, since most text-to-image models cannot output alpha channels directly" },
+    "subject": {
+      "object": "literal 4-pronged dinner fork, same construction as the logo asset",
+      "fill_color": "#A855F7 flat matte, single solid fill",
+      "outline": "single continuous #F5F0FF outline around the whole merged silhouette, no per-segment seams",
+      "shadow": "hard offset #6D28D9 silhouette duplicate, crisp edge, no blur, no transparency falloff"
+    },
+    "scale": "~55-60% of canvas height, centered both axes",
+    "post_processing_note": "after generation, remove the flat white background (color-key / remove.bg / Photoshop magic wand on the solid white) and export as a transparent PNG before using as an Instagram highlight cover",
+    "negative_prompt": "no gradient background, no drop shadow on the background, no vignette, no texture, no watermark, no text, no extra icons, no glow"
+  }
+}

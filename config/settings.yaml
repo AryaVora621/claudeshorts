@@ -76,8 +76,14 @@ model:
     base_url: "http://127.0.0.1:11434/v1"
     model: "qwen3-30b-a3b"
   openai_compat:
-    base_url: ""
-    model: ""
+    # OpenRouter preset. openai/gpt-oss-120b:free is currently the highest-
+    # capacity free OpenRouter model with native tool calling / structured
+    # output (needed for generate_structured's forced emit_post tool call) —
+    # verified July 2026. Swap base_url/model for NVIDIA NIM or Gemini per
+    # docs/superpowers/specs/2026-07-10-chunk14-llm-provider-keys-design.md
+    # if this one's rate limits or quality don't hold up.
+    base_url: "https://openrouter.ai/api/v1"
+    model: "openai/gpt-oss-120b:free"
     api_key_env: "OPENAI_COMPAT_API_KEY"
 
 # Deterministic post-generation styling: brand color pinning + layout selection
