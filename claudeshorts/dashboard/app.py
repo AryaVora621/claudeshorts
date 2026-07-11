@@ -24,7 +24,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .. import config
+from .. import api, config
 from ..store import connect
 from . import auth, jobs, settings_io
 
@@ -89,6 +89,7 @@ def _media_path(post_id: int, name: str) -> Path | None:
 def create_app() -> FastAPI:
     app = FastAPI(title="claudeshorts dashboard")
     app.mount("/static", StaticFiles(directory=str(_HERE / "static")), name="static")
+    app.include_router(api.router)
 
     @app.on_event("startup")
     def _start_job_worker() -> None:
