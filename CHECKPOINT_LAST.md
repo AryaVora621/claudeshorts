@@ -1,7 +1,38 @@
-# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-5 CODE-COMPLETE)
+# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-6 CODE-COMPLETE)
 
 Agent: Claude (Fable 5), branch `feature/platform-rebuild`. SDD ledger:
 `.superpowers/sdd/progress.md`.
+
+## Chunk 6 (structured logging): DONE, reviewed, verified live
+- New `claudeshorts/logging_setup.py`: contextvar-based job_id/worker_id/
+  platform stamped on every record via a logging.Filter; nesting-safe
+  `bind()` context manager (try/finally token reset); idempotent
+  `configure_logging()` with text/JSON format toggle from settings
+  `logging:` section.
+- All 5 process entry points (CLI, dashboard, orchestrate runner, job
+  worker, scheduler) now call configure_logging(); old ad hoc
+  `orchestrate/runner.setup_logging` fully removed (incl. its
+  `orchestrate/__init__.py` re-export).
+- Job worker binds job_id/worker_id and logs duration on completion/
+  failure; per-job DB log capture (jobs.log column) unchanged. Publish
+  exporter binds platform per platform-loop iteration.
+- Review loop caught + fixed: JSON formatter was dropping exc_info/
+  stack_info tracebacks (fixed); worker's failure log line lost its
+  traceback in the plan's verbatim code (restored via exc_info=True).
+- dashboard/jobs.py's old thread-routing log handler was already removed
+  in chunk 2 — Task 5 verified absence only, no code change needed.
+- Verified: 150/150 tests; live boot — enqueued an ingest job, observed
+  structured completion log `[job=2 worker=dashboard-worker
+  platform=None] ... completed in 7.9s`.
+- Commits be9cc75..b90c63f.
+
+## Next action
+Chunk 7 (LLM provider abstraction) via the same SDD loop; then chunk 8
+(more renderer/video styles + final whole-branch review).
+Human-required items unchanged (chunk 1 Task 11 real migration; chunks
+10-14 blocked on user credentials — do not start).
+
+---
 
 ## Chunk 5 (scheduling engine): DONE, reviewed, verified live
 - New `claudeshorts/scheduling/` package: compute.py (pure next_run_at —
