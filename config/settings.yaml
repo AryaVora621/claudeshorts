@@ -62,12 +62,23 @@ model:
   #                 Code installed + `claude login` on the host.
   #   api        -> direct Anthropic API (needs ANTHROPIC_API_KEY), forced tool
   #                 use + prompt caching.
+  #   local      -> OpenAI-compatible chat-completions server on localhost
+  #                 (Ollama/LM Studio/vLLM); zero marginal cost.
+  #   openai_compat -> any remote OpenAI-compatible endpoint (OpenRouter,
+  #                 NVIDIA NIM, etc.); needs api_key_env set in the env.
   backend: claude_cli
   cli_model: sonnet            # alias passed to `claude --model` (claude_cli)
   name: claude-sonnet-4-6      # model id for the api backend
   max_tokens: 4096
   prompt_cache: true           # api backend only
   timeout_seconds: 180         # per-generation CLI timeout
+  local:
+    base_url: "http://127.0.0.1:11434/v1"
+    model: "qwen3-30b-a3b"
+  openai_compat:
+    base_url: ""
+    model: ""
+    api_key_env: "OPENAI_COMPAT_API_KEY"
 
 # Ingestion window (Phase 1): ignore items older than this many hours.
 ingest:

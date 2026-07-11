@@ -1,27 +1,20 @@
 """Generation of a single structured post.
 
-Two backends, selected by ``model.backend`` in settings.yaml:
-
-- ``claude_cli`` (default): shells out to the ``claude`` CLI in headless print
-  mode. This runs under your **Claude Pro/Max subscription** auth (no metered
-  API key needed) — the cheap path. The desktop must have Claude Code installed
-  and logged in (`claude login`).
-- ``api``: direct Anthropic SDK call with forced tool use (needs
-  ``ANTHROPIC_API_KEY``). Uses prompt caching.
-
-Both validate against ``schema.validate_post`` before returning. The model call
-is isolated here so the rest of the pipeline can run with a mock generator.
+Backend selected by ``model.backend`` in settings.yaml (``claude_cli``,
+``api``, ``local``, or ``openai_compat`` — see ``providers/registry.py`` for
+what each one does). All backends validate against ``schema.validate_post``
+before returning. The model call is isolated here so the rest of the
+pipeline can run with a mock generator.
 """
 
 from __future__ import annotations
 
 import json
-import shutil
-import subprocess
 from typing import Any, Callable
 
 from ..config import settings
-from .schema import POST_TOOL, validate_post
+from . import schema
+from .providers import registry
 
 # Static, prompt-cached (api backend). Defines voice + editorial rules.
 SYSTEM_PROMPT = """\
@@ -86,131 +79,15 @@ def build_user_prompt(item: dict, prior_coverage: str | None = None) -> str:
 
 
 def build_cli_prompt(item: dict, prior_coverage: str | None = None) -> str:
-    schema = json.dumps(POST_TOOL["input_schema"])
+    tool_schema = json.dumps(schema.POST_TOOL["input_schema"])
     return (
         SYSTEM_PROMPT
         + "\n\n"
         + build_user_prompt(item, prior_coverage)
         + "\n\nRespond with ONLY a single minified JSON object (no prose, no "
         "markdown code fences) that conforms to this JSON Schema:\n"
-        + schema
+        + tool_schema
     )
-
-
-# --- claude_cli backend (subscription auth) --------------------------------
-def _run_claude_cli(prompt: str, model: str, timeout: int) -> str:
-    binary = shutil.which("claude") or "claude"
-    try:
-        proc = subprocess.run(
-            [binary, "-p", "--output-format", "json", "--model", model],
-            input=prompt, capture_output=True, text=True, timeout=timeout,
-        )
-    except FileNotFoundError as exc:
-        raise RuntimeError(
-            "`claude` CLI not found. Install Claude Code and run `claude login` "
-            "to use the subscription backend, or set model.backend: api."
-        ) from exc
-    if proc.returncode != 0:
-        detail = (proc.stderr or proc.stdout or "").strip()
-        raise RuntimeError(f"claude CLI failed (exit {proc.returncode}): {detail}")
-    return proc.stdout
-
-
-def _result_text(raw: str) -> str:
-    """Pull the assistant text out of the `--output-format json` output.
-
-    The CLI emits one of two shapes depending on version:
-    - older: a single envelope ``{"type":"result","result":"..."}``;
-    - Claude Code 2.1+: a JSON array of stream events whose final
-      ``{"type":"result"}`` element carries the text.
-    Falls back to assistant text blocks, then the raw string.
-    """
-    try:
-        env = json.loads(raw)
-    except json.JSONDecodeError:
-        return raw
-    events = env if isinstance(env, list) else [env]
-    # Prefer the terminal result event (last one wins).
-    result_event = next(
-        (e for e in reversed(events)
-         if isinstance(e, dict) and e.get("type") == "result"),
-        None,
-    )
-    if result_event is not None:
-        if result_event.get("is_error"):
-            detail = (result_event.get("result")
-                      or result_event.get("api_error_status") or "unknown error")
-            raise RuntimeError(f"claude CLI returned an error result: {detail}")
-        text = result_event.get("result")
-        if isinstance(text, str):
-            return text
-    # Backward-compat: a bare dict envelope with a result string.
-    if isinstance(env, dict) and isinstance(env.get("result"), str):
-        return env["result"]
-    # Fallback: concatenate assistant text blocks from a stream array.
-    texts = [
-        block.get("text", "")
-        for e in events if isinstance(e, dict) and e.get("type") == "assistant"
-        for block in (e.get("message", {}).get("content") or [])
-        if isinstance(block, dict) and block.get("type") == "text"
-    ]
-    if texts:
-        return "\n".join(texts)
-    return raw
-
-
-def _parse_json_object(text: str) -> dict:
-    """Tolerant extraction of the first {...} JSON object from model output."""
-    s = (text or "").strip()
-    start, end = s.find("{"), s.rfind("}")
-    if start == -1 or end == -1 or end < start:
-        raise ValueError("no JSON object found in Claude output")
-    return json.loads(s[start:end + 1])
-
-
-def _generate_via_cli(item: dict, prior: str | None, cfg: dict) -> dict:
-    raw = _run_claude_cli(
-        build_cli_prompt(item, prior),
-        cfg.get("cli_model", "sonnet"),
-        cfg.get("timeout_seconds", 180),
-    )
-    return _parse_json_object(_result_text(raw))
-
-
-# --- api backend (metered key) ---------------------------------------------
-def _make_client():
-    from anthropic import Anthropic  # lazy: offline/CLI paths don't need it
-
-    return Anthropic()
-
-
-def _extract_tool_input(message: Any) -> dict:
-    for block in message.content:
-        if getattr(block, "type", None) == "tool_use" and block.name == "emit_post":
-            return block.input
-    raise ValueError("Claude response contained no emit_post tool_use block")
-
-
-def _generate_via_api(item: dict, prior: str | None, cfg: dict,
-                      client: Any | None, model: str | None) -> dict:
-    model = model or cfg.get("name", "claude-sonnet-4-6")
-    client = client or _make_client()
-    if cfg.get("prompt_cache", True):
-        system: Any = [{
-            "type": "text", "text": SYSTEM_PROMPT,
-            "cache_control": {"type": "ephemeral"},
-        }]
-    else:
-        system = SYSTEM_PROMPT
-    message = client.messages.create(
-        model=model,
-        max_tokens=cfg.get("max_tokens", 4096),
-        system=system,
-        tools=[POST_TOOL],
-        tool_choice={"type": "tool", "name": "emit_post"},
-        messages=[{"role": "user", "content": build_user_prompt(item, prior)}],
-    )
-    return _extract_tool_input(message)
 
 
 # --- public entrypoint -----------------------------------------------------
@@ -225,15 +102,16 @@ def generate_post(
     """Generate one validated structured post via the configured backend."""
     cfg = settings().get("model", {})
     backend = backend or cfg.get("backend", "claude_cli")
-
-    if backend == "claude_cli":
-        data = _generate_via_cli(item, prior_coverage, cfg)
-    elif backend == "api":
-        data = _generate_via_api(item, prior_coverage, cfg, client, model)
-    else:
-        raise ValueError(f"unknown model.backend: {backend!r} (use claude_cli|api)")
-
-    errors = validate_post(data)
+    prompt = (
+        build_cli_prompt(item, prior_coverage)
+        if backend == "claude_cli"
+        else build_user_prompt(item, prior_coverage)
+    )
+    provider = registry.get_provider(backend, client=client, model=model)
+    data = provider.generate_structured(
+        SYSTEM_PROMPT, prompt, schema.POST_TOOL, "emit_post",
+    )
+    errors = schema.validate_post(data)
     if errors:
-        raise ValueError("invalid post from Claude: " + "; ".join(errors))
+        raise ValueError("invalid post from model: " + "; ".join(errors))
     return data

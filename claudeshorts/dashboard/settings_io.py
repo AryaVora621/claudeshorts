@@ -47,6 +47,6 @@ def update(updates: dict[str, Any]) -> dict[str, Any]:
 
 
 def set_backend(backend: str) -> None:
-    if backend not in ("claude_cli", "api"):
+    if backend not in ("claude_cli", "api", "local", "openai_compat"):
         raise ValueError(f"unknown backend {backend!r}")
     update({"model": {"backend": backend}})
