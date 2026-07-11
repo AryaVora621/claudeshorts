@@ -1,7 +1,40 @@
-# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-6 CODE-COMPLETE)
+# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-7 CODE-COMPLETE)
 
 Agent: Claude (Fable 5), branch `feature/platform-rebuild`. SDD ledger:
 `.superpowers/sdd/progress.md`.
+
+## Chunk 7 (LLM provider abstraction): DONE, reviewed, verified live
+- New `claudeshorts/generate/providers/` package: base.py (LLMProvider
+  Protocol), claude_cli.py + claude_api.py (verbatim extractions of the two
+  existing backends, zero behavior change), openai_compatible.py (net-new
+  generic OpenAI-compatible HTTP provider for local models via Ollama/
+  llama.cpp and any other compatible endpoint), registry.py
+  (config-driven get_provider dispatch).
+- generator.py's `generate_post` is now a thin dispatcher: picks
+  build_cli_prompt vs build_user_prompt by backend, resolves a provider via
+  the registry, calls generate_structured, validates. All 7 old inline
+  functions removed; zero stale references confirmed repo-wide.
+- Hardened openai_compatible.py's error handling beyond the plan's literal
+  code before wiring it in: timeout/connect/malformed-response/malformed-
+  JSON all raise RuntimeError with actionable context instead of raw
+  httpx/json/Key/IndexErrors — justified since local models fail more
+  often than Claude's API and this became a live dispatch path in this
+  same task.
+- settings_io.py's allowed-backend list widened to
+  claude_cli/api/local/openai_compat. Known gap (out of scope, flagged for
+  a later UI task): dashboard settings.html has no controls yet for the
+  two new backends.
+- Verified: 173/173 tests; live check — registry.get_provider resolves all
+  4 backend names to the correct provider classes.
+- Commits 2160dfd..7f529b5.
+
+## Next action
+Chunk 8 (more renderer/video styles) via the same SDD loop, then the final
+whole-branch review (most capable model) + finishing-a-development-branch.
+Human-required items unchanged (chunk 1 Task 11 real migration; chunks
+10-14 blocked on user credentials — do not start).
+
+---
 
 ## Chunk 6 (structured logging): DONE, reviewed, verified live
 - New `claudeshorts/logging_setup.py`: contextvar-based job_id/worker_id/
