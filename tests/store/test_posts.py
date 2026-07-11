@@ -4,7 +4,9 @@ from claudeshorts.store import db, posts
 
 
 def _mk(conn, **overrides):
-    kwargs = dict(item_ids=[1, 2], title="T", slides={"a": 1}, captions={"b": 2})
+    kwargs = dict(
+        item_ids=[1, 2], title="T", slides={"a": 1}, captions={"b": 2}, profile_id=1,
+    )
     kwargs.update(overrides)
     return posts.insert_post(conn, **kwargs)
 
@@ -44,7 +46,7 @@ def test_used_item_ids_aggregates_recent_posts():
     with db.connect() as conn:
         _mk(conn, item_ids=[10, 20])
         _mk(conn, item_ids=[20, 30])
-        assert posts.used_item_ids(conn, days=1) == {10, 20, 30}
+        assert posts.used_item_ids(conn, days=1, profile_id=1) == {10, 20, 30}
 
 
 def test_recent_posts_and_all_posts():
@@ -60,6 +62,7 @@ def test_insert_post_persists_layout():
         post_id = posts.insert_post(
             conn, item_ids=[1], status="draft", title="T",
             slides=[], theme={"subject": "x"}, captions={}, layout="editorial",
+            profile_id=1,
         )
         post = posts.get_post(conn, post_id)
         assert post["layout"] == "editorial"
@@ -69,7 +72,15 @@ def test_insert_post_defaults_layout_to_slideshow():
     with db.connect() as conn:
         post_id = posts.insert_post(
             conn, item_ids=[1], status="draft", title="T",
-            slides=[], theme={"subject": "x"}, captions={},
+            slides=[], theme={"subject": "x"}, captions={}, profile_id=1,
         )
         post = posts.get_post(conn, post_id)
         assert post["layout"] == "slideshow"
+
+
+def test_insert_post_persists_profile_id():
+    with db.connect() as conn:
+        post_id = posts.insert_post(
+            conn, item_ids=[1], title="T", slides=[], captions={}, profile_id=1,
+        )
+        assert posts.get_post(conn, post_id)["profile_id"] == 1

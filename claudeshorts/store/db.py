@@ -57,6 +57,10 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
 
+-- `slug UNIQUE` below is a leftover single-profile constraint kept only so
+-- CREATE TABLE IF NOT EXISTS stays valid against pre-multi-profile DBs; the
+-- ALTER further down replaces it with a (profile_id, slug) unique index on
+-- every startup, including a brand-new DB's first init_db() call.
 CREATE TABLE IF NOT EXISTS threads (
     id            BIGSERIAL PRIMARY KEY,
     slug          TEXT        NOT NULL UNIQUE,
@@ -173,6 +177,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_items_content_hash
 
 CREATE INDEX IF NOT EXISTS idx_posts_profile_status ON posts(profile_id, status);
 CREATE INDEX IF NOT EXISTS idx_runs_profile_date ON runs(profile_id, run_date);
+
+-- threads.slug was globally unique; two profiles independently opening a
+-- thread with the same derived slug (e.g. both "gpt-6-launch") is expected,
+-- not a collision, so scope uniqueness to (profile_id, slug) instead.
+ALTER TABLE threads DROP CONSTRAINT IF EXISTS threads_slug_key;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_threads_profile_slug ON threads(profile_id, slug);
 """
 
 

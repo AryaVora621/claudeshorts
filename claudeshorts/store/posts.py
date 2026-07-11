@@ -24,6 +24,7 @@ def insert_post(
     title: str,
     slides: Any,
     captions: Any,
+    profile_id: int,
     theme: Any = None,
     status: str = "draft",
     layout: str = "slideshow",
@@ -31,12 +32,13 @@ def insert_post(
     """Insert a generated post; returns the new post id."""
     row = conn.execute(
         "INSERT INTO posts "
-        "(item_ids, status, title, slides_json, theme_json, captions_json, layout) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
+        "(item_ids, status, title, slides_json, theme_json, captions_json, layout, "
+        "profile_id) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
         (
             psycopg.types.json.Jsonb(item_ids), status, title,
             psycopg.types.json.Jsonb(slides), psycopg.types.json.Jsonb(theme),
-            psycopg.types.json.Jsonb(captions), layout,
+            psycopg.types.json.Jsonb(captions), layout, profile_id,
         ),
     ).fetchone()
     return int(row["id"])
@@ -108,11 +110,16 @@ def due_posts(conn: psycopg.Connection, on_date: str) -> list[dict[str, Any]]:
     return [_row_to_post(r) for r in rows]
 
 
-def used_item_ids(conn: psycopg.Connection, days: int) -> set[int]:
-    """item ids already consumed by recent posts (for selection dedupe)."""
+def used_item_ids(conn: psycopg.Connection, days: int, profile_id: int) -> set[int]:
+    """item ids already consumed by `profile_id`'s recent posts (for selection dedupe)."""
+    rows = conn.execute(
+        "SELECT item_ids FROM posts WHERE profile_id = %s "
+        "AND created_at >= now() - (%s || ' days')::interval",
+        (profile_id, int(days)),
+    ).fetchall()
     ids: set[int] = set()
-    for post in recent_posts(conn, days):
-        ids.update(post["item_ids"])
+    for row in rows:
+        ids.update(row["item_ids"] or [])
     return ids
 
 

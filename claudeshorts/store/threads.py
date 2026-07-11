@@ -11,9 +11,11 @@ from typing import Any
 import psycopg
 
 
-def open_threads(conn: psycopg.Connection) -> list[dict[str, Any]]:
+def open_threads(conn: psycopg.Connection, profile_id: int) -> list[dict[str, Any]]:
     rows = conn.execute(
-        "SELECT * FROM threads WHERE status = 'ongoing' ORDER BY last_updated DESC"
+        "SELECT * FROM threads WHERE status = 'ongoing' AND profile_id = %s "
+        "ORDER BY last_updated DESC",
+        (profile_id,),
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -25,15 +27,21 @@ def get_thread_by_slug(conn: psycopg.Connection, slug: str) -> dict[str, Any] | 
 
 def upsert_thread(
     conn: psycopg.Connection, *, slug: str, title: str, summary: str | None,
+    profile_id: int,
 ) -> int:
-    """Create or refresh a thread by slug; returns its id. Bumps last_updated."""
+    """Create or refresh a thread by (profile_id, slug); returns its id.
+
+    Bumps last_updated. Scoped per-profile so two profiles independently
+    opening a thread with the same derived slug don't collide.
+    """
     row = conn.execute(
-        "INSERT INTO threads (slug, title, summary) VALUES (%s, %s, %s) "
-        "ON CONFLICT (slug) DO UPDATE SET "
+        "INSERT INTO threads (slug, title, summary, profile_id) "
+        "VALUES (%s, %s, %s, %s) "
+        "ON CONFLICT (profile_id, slug) DO UPDATE SET "
         "title = EXCLUDED.title, summary = EXCLUDED.summary, "
         "status = 'ongoing', last_updated = now() "
         "RETURNING id",
-        (slug, title, summary),
+        (slug, title, summary, profile_id),
     ).fetchone()
     return int(row["id"])
 
