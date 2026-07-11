@@ -27,6 +27,7 @@ def test_render_enqueues_job_with_post_id():
     with connect() as conn:
         row = store_jobs.get_job(conn, job_id)
     assert row["payload"] == {"post_id": 42}
+    assert row["status"] == "PENDING"
 
 
 def test_run_enqueues_full_run_job():
