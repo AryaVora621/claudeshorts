@@ -26,19 +26,34 @@ def list_jobs(limit: int = 50) -> list[dict[str, Any]]:
         return store_jobs.recent_jobs(conn, limit)
 
 
+def _raise_for_blocked_transition(job_id: int) -> None:
+    """The queue call matched zero rows: figure out why and raise the right
+    HTTP error. Either the job doesn't exist (404) or it exists but its
+    current status blocks the transition (409, e.g. cancelling a job that's
+    already COMPLETED)."""
+    with connect() as conn:
+        row = store_jobs.get_job(conn, job_id)
+    if not row:
+        raise HTTPException(404, f"job {job_id} not found")
+    raise HTTPException(409, f"job {job_id} is {row['status']}")
+
+
 @router.post("/{job_id}/cancel")
 def cancel(job_id: int) -> dict[str, Any]:
-    job_queue.request_cancel(job_id)
+    if not job_queue.request_cancel(job_id):
+        _raise_for_blocked_transition(job_id)
     return {"job_id": job_id}
 
 
 @router.post("/{job_id}/pause")
 def pause(job_id: int) -> dict[str, Any]:
-    job_queue.request_pause(job_id)
+    if not job_queue.request_pause(job_id):
+        _raise_for_blocked_transition(job_id)
     return {"job_id": job_id}
 
 
 @router.post("/{job_id}/resume")
 def resume(job_id: int) -> dict[str, Any]:
-    job_queue.resume(job_id)
+    if not job_queue.resume(job_id):
+        _raise_for_blocked_transition(job_id)
     return {"job_id": job_id}

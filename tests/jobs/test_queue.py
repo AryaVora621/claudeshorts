@@ -106,6 +106,18 @@ def test_cancel_running_job_only_flags_it():
     assert row["finished_at"] is None
 
 
+def test_request_cancel_returns_bool_for_pending_missing_and_terminal():
+    job_id = queue.enqueue("ingest", {}, name="ingest")
+    assert queue.request_cancel(job_id) is True
+
+    assert queue.request_cancel(999999) is False
+
+    job_id2 = queue.enqueue("ingest", {}, name="ingest")
+    queue.claim_next("worker-1")
+    queue.complete(job_id2, "done")
+    assert queue.request_cancel(job_id2) is False
+
+
 def test_cancel_completed_job_is_a_noop():
     job_id = queue.enqueue("ingest", {}, name="ingest")
     queue.claim_next("worker-1")

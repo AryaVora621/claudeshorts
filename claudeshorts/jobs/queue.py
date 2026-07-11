@@ -91,12 +91,15 @@ def fail(job_id: int, error: str) -> None:
             )
 
 
-def request_cancel(job_id: int) -> None:
+def request_cancel(job_id: int) -> bool:
     """Cancel a PENDING/RETRYING/PAUSED job immediately; flag a RUNNING one
     so the worker discards its result on completion (see spec: queue-level
-    cancel only, no mid-execution interruption). Terminal jobs are untouched."""
+    cancel only, no mid-execution interruption). Terminal jobs are untouched.
+
+    Returns True if the job existed and was eligible (row updated), False if
+    the job id doesn't exist or is already in a terminal state."""
     with db.connect() as conn:
-        conn.execute(
+        cur = conn.execute(
             "UPDATE jobs SET status = CASE WHEN status = 'RUNNING' "
             "THEN 'RUNNING' ELSE 'CANCELLED' END, "
             "cancel_requested = true, "
@@ -105,6 +108,7 @@ def request_cancel(job_id: int) -> None:
             "WHERE id = %s AND status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')",
             (job_id,),
         )
+        return cur.rowcount > 0
 
 
 def cancel_claimed(job_id: int) -> None:
@@ -126,19 +130,25 @@ def cancel_claimed(job_id: int) -> None:
         )
 
 
-def request_pause(job_id: int) -> None:
+def request_pause(job_id: int) -> bool:
+    """Pause a PENDING/RETRYING job. Returns True if a row was updated, False
+    if the job doesn't exist or isn't in a pausable state."""
     with db.connect() as conn:
-        conn.execute(
+        cur = conn.execute(
             "UPDATE jobs SET status = 'PAUSED', pause_requested = true "
             "WHERE id = %s AND status IN ('PENDING', 'RETRYING')",
             (job_id,),
         )
+        return cur.rowcount > 0
 
 
-def resume(job_id: int) -> None:
+def resume(job_id: int) -> bool:
+    """Resume a PAUSED job. Returns True if a row was updated, False if the
+    job doesn't exist or isn't currently PAUSED."""
     with db.connect() as conn:
-        conn.execute(
+        cur = conn.execute(
             "UPDATE jobs SET status = 'PENDING', pause_requested = false "
             "WHERE id = %s AND status = 'PAUSED'",
             (job_id,),
         )
+        return cur.rowcount > 0
