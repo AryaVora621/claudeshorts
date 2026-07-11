@@ -96,10 +96,15 @@ def create_app() -> FastAPI:
         import threading
 
         from ..jobs.worker import run_forever
+        from ..scheduling.scheduler import run_forever as run_scheduler_forever
+        from ..scheduling.scheduler import seed_default_schedules
 
         threading.Thread(
             target=run_forever, args=("dashboard-worker",), daemon=True,
         ).start()
+
+        seed_default_schedules()
+        threading.Thread(target=run_scheduler_forever, daemon=True).start()
 
     def page(request: Request, name: str, **ctx):
         ctx.setdefault("active", "")
