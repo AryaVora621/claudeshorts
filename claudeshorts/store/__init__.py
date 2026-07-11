@@ -15,6 +15,9 @@ from .posts import (
     all_posts, due_posts, get_post, insert_post, posts_by_status, recent_posts,
     scheduled_posts, set_schedule, set_status, status_counts, used_item_ids,
 )
+from .profiles import (
+    get_profile, get_profile_by_id, list_profiles, set_auto_publish, upsert_profile,
+)
 from .threads import (
     link_post_thread, open_threads, posts_for_thread, threads_with_posts,
     upsert_thread,
@@ -30,4 +33,6 @@ __all__ = [
     "pin_item", "unpin_item", "is_pinned", "pinned_item_ids", "pinned_items",
     "open_threads", "upsert_thread", "link_post_thread",
     "posts_for_thread", "threads_with_posts",
+    "upsert_profile", "get_profile", "get_profile_by_id", "list_profiles",
+    "set_auto_publish",
 ]
