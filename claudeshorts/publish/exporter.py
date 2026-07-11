@@ -8,15 +8,18 @@ deferred — a human does the final upload from these folders.
 
 from __future__ import annotations
 
+import logging
 import shutil
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .. import config, progress
+from .. import config, logging_setup, progress
 from ..review.captions import PLATFORM_CAPTION
 from ..review.queue import review_dir_for
 from ..store import connect, due_posts, set_status
+
+log = logging.getLogger("claudeshorts.publish")
 
 
 def _locate_video(post_id: int) -> Path:
@@ -62,20 +65,22 @@ def export_post(
 
     out_dirs: list[Path] = []
     for platform in platforms:
-        dest = config.PUBLISH_DIR / platform / today / f"post_{post['id']}"
-        dest.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(video, dest / "video.mp4")
-        # Also drop the swipeable carousel so the post can go out as a slideshow
-        # (Instagram/TikTok) instead of the auto-advancing video.
-        if slides:
-            slides_dest = dest / "slides"
-            slides_dest.mkdir(parents=True, exist_ok=True)
-            for still in slides:
-                shutil.copy2(still, slides_dest / still.name)
-        formatter = PLATFORM_CAPTION.get(platform)
-        text = formatter(caps) if formatter else ""
-        (dest / "caption.txt").write_text(text + "\n", encoding="utf-8")
-        out_dirs.append(dest)
+        with logging_setup.bind(platform=platform):
+            log.info("exporting post %d to %s", post["id"], platform)
+            dest = config.PUBLISH_DIR / platform / today / f"post_{post['id']}"
+            dest.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(video, dest / "video.mp4")
+            # Also drop the swipeable carousel so the post can go out as a slideshow
+            # (Instagram/TikTok) instead of the auto-advancing video.
+            if slides:
+                slides_dest = dest / "slides"
+                slides_dest.mkdir(parents=True, exist_ok=True)
+                for still in slides:
+                    shutil.copy2(still, slides_dest / still.name)
+            formatter = PLATFORM_CAPTION.get(platform)
+            text = formatter(caps) if formatter else ""
+            (dest / "caption.txt").write_text(text + "\n", encoding="utf-8")
+            out_dirs.append(dest)
 
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
     with connect() as conn:
