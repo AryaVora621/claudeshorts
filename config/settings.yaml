@@ -80,6 +80,21 @@ model:
     model: ""
     api_key_env: "OPENAI_COMPAT_API_KEY"
 
+# Deterministic post-generation styling: brand color pinning + layout selection
+# (no LLM involved, applied after the model returns its theme/content).
+styles:
+  brand_colors:
+    nvidia:     {primary: "#76B900", secondary: "#0A0A0A", accent: "#FFFFFF", mood: dark}
+    anthropic:  {primary: "#D97757", secondary: "#F5F0E8", accent: "#1A1A1A", mood: light}
+    openai:     {primary: "#10A37F", secondary: "#0A0A0A", accent: "#FFFFFF", mood: dark}
+    google:     {primary: "#4285F4", secondary: "#0A0A0A", accent: "#FFFFFF", mood: dark}
+    meta:       {primary: "#0668E1", secondary: "#0A0A0A", accent: "#FFFFFF", mood: dark}
+    microsoft:  {primary: "#00A4EF", secondary: "#0A0A0A", accent: "#FFFFFF", mood: dark}
+  layout_rules:
+    breaking:  ["launch", "launches", "release", "releases", "announces", "unveils"]
+    editorial: ["analysis", "opinion", "deep dive", "explainer", "why "]
+  default_layout: slideshow
+
 # Ingestion window (Phase 1): ignore items older than this many hours.
 ingest:
   max_age_hours: 48

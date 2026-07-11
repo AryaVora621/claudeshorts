@@ -6,11 +6,13 @@ import logging
 from typing import Any, Callable
 
 from .. import progress
+from ..config import settings
 from ..store import connect
 from ..store.items import get_item
 from ..store.pins import unpin_item
 from ..store.posts import insert_post
 from ..store.threads import link_post_thread, open_threads, upsert_thread
+from . import style_rules
 from .generator import GenerateFn, generate_post
 from .select import _match_thread, select_topics
 
@@ -33,6 +35,13 @@ def _prior_coverage(thread: dict) -> str:
 
 def _persist_post(conn, item: dict, data: dict, *, follow_up: bool) -> dict[str, Any]:
     """Insert a generated post + thread link; clear any pin on its item."""
+    style_cfg = settings().get("styles", {})
+    data["theme"] = style_rules.pin_brand_colors(
+        data["theme"], style_cfg.get("brand_colors", {})
+    )
+    layout = style_rules.select_layout(
+        item, style_cfg.get("layout_rules", {}), style_cfg.get("default_layout", "slideshow"),
+    )
     post_id = insert_post(
         conn,
         item_ids=[item["id"]],
@@ -41,6 +50,7 @@ def _persist_post(conn, item: dict, data: dict, *, follow_up: bool) -> dict[str,
         captions=data["captions"],
         theme=data["theme"],
         status="draft",
+        layout=layout,
     )
     thread_id = upsert_thread(
         conn,
