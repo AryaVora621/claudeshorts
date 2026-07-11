@@ -8,7 +8,6 @@ difference is only `base_url`/`api_key`/`model` in config, never new code.
 from __future__ import annotations
 
 import json
-from typing import Any
 
 import httpx
 
@@ -49,13 +48,52 @@ class OpenAICompatibleProvider:
             "tools": [function_spec],
             "tool_choice": {"type": "function", "function": {"name": tool_name}},
         }
-        resp = self._client.post(
-            f"{self.base_url}/chat/completions", json=body, headers=self._headers(),
-        )
+        try:
+            resp = self._client.post(
+                f"{self.base_url}/chat/completions", json=body, headers=self._headers(),
+            )
+        except httpx.TimeoutException as exc:
+            raise RuntimeError(
+                f"could not reach {self.base_url}: request timed out. Is the local model "
+                "server (Ollama/llama.cpp/LM Studio) running and responsive?"
+            ) from exc
+        except (httpx.ConnectError, httpx.RequestError) as exc:
+            raise RuntimeError(f"could not reach {self.base_url}: {exc}") from exc
         resp.raise_for_status()
-        data = resp.json()
-        message = data["choices"][0]["message"]
+        try:
+            data = resp.json()
+        except ValueError as exc:
+            raise RuntimeError(
+                f"{self.base_url} returned a non-JSON response body: {exc}"
+            ) from exc
+
+        choices = data.get("choices")
+        if not choices or not isinstance(choices, list):
+            raise RuntimeError(
+                f"{self.base_url} response missing 'choices'; expected a chat-completions "
+                f"object with a non-empty 'choices' list, got: {data!r}"
+            )
+        message = choices[0].get("message") if isinstance(choices[0], dict) else None
+        if not isinstance(message, dict):
+            raise RuntimeError(
+                f"{self.base_url} response missing choices[0].message; got: {choices[0]!r}"
+            )
+
         for call in message.get("tool_calls") or []:
-            if call["function"]["name"] == tool_name:
-                return json.loads(call["function"]["arguments"])
+            function = call.get("function") if isinstance(call, dict) else None
+            if not isinstance(function, dict) or "name" not in function:
+                raise RuntimeError(
+                    f"{self.base_url} returned a malformed tool_call (missing function/name): "
+                    f"{call!r}"
+                )
+            if function["name"] != tool_name:
+                continue
+            arguments = function.get("arguments")
+            try:
+                return json.loads(arguments)
+            except (json.JSONDecodeError, TypeError) as exc:
+                raise RuntimeError(
+                    f"{self.base_url} returned malformed JSON for {tool_name} tool-call "
+                    f"arguments: {exc}. Raw arguments: {arguments!r}"
+                ) from exc
         raise ValueError(f"{self.base_url} response contained no {tool_name} tool call")
