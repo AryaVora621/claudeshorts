@@ -1,7 +1,33 @@
-# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-3 CODE-COMPLETE)
+# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-4 CODE-COMPLETE)
 
 Agent: Claude (Fable 5), branch `feature/platform-rebuild`. SDD ledger:
 `.superpowers/sdd/progress.md`.
+
+## Chunk 4 (REST API over services): DONE, reviewed, verified live
+- New `claudeshorts/api/` package mounted at `/api/v1` inside the dashboard
+  app: health, posts (list/get/approve/reject/schedule/export), articles
+  (list/add/pin/unpin/generate), pipeline (4 queue-backed 202 endpoints),
+  jobs (list/get/cancel/pause/resume). No auth (LAN-only posture).
+- Architecture held by review loop: every service-backed handler is a
+  one-line service_call adapter (ValueError→404, FileNotFoundError→409);
+  queue-backed handlers make exactly one queue call. Two tasks were sent
+  back for bypassing this and fixed (reads added to posts/articles
+  services).
+- Real fix beyond the plan: queue.request_cancel/request_pause/resume now
+  return bool (rowcount>0, guards untouched) so the API returns 404 for
+  missing jobs and 409 for blocked transitions instead of silent 200s.
+- Verified: 123/123 tests; live smoke — health ok, list endpoints 200,
+  missing-post approve 404, missing-job cancel 404, openapi.json 200.
+- Known debt for final review: @app.on_event("startup") deprecation
+  (migrate to lifespan), testclient/httpx deprecation warnings.
+- Commits 652324f..929da4d.
+
+## Next action
+Chunk 5 (scheduling engine) via the same SDD loop; then 6-8.
+Human-required items unchanged (chunk 1 Task 11 real migration; chunks
+10-14 blocked on user credentials — do not start).
+
+---
 
 ## Chunk 3 (service layer extraction): DONE, reviewed, verified live
 - New `claudeshorts/services/` package: posts_service (approve/reject/

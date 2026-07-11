@@ -36,13 +36,13 @@
 ## In-Progress
 - [IN_PROGRESS Claude/Fable5] goal.md rebuild implementation, chunks 1-8 via
   subagent-driven development on branch `feature/platform-rebuild`.
-  **Chunks 1-3 code-complete** (chunk 1: store layer fully Postgres; chunk 2:
-  durable job queue + state machine + polling worker + dashboard rewire,
-  verified live end-to-end; chunk 3: services/ package extracted, dashboard/
-  CLI/job-registry all thin callers, datetime-vs-string template regression
-  fixed, 88/88 tests + all dashboard pages 200 with data). Only chunk 1's
-  human-required Task 11 (real data migration) remains — see Open. Progress
-  ledger: `.superpowers/sdd/progress.md`. Next: chunk 4 (REST API).
+  **Chunks 1-4 code-complete** (chunk 1: store layer fully Postgres; chunk 2:
+  durable job queue + worker; chunk 3: services/ layer, all frontends thin
+  callers; chunk 4: REST API at /api/v1 — posts/articles/pipeline/jobs +
+  health, 123/123 tests, live-smoke green incl. 404/409 error mapping).
+  Only chunk 1's human-required Task 11 (real data migration) remains — see
+  Open. Progress ledger: `.superpowers/sdd/progress.md`. Next: chunk 5
+  (scheduling engine).
 - [IN_PROGRESS Claude/Opus] Live jobs dashboard: percent bars (phase + per-item),
   clickable job history that survives restarts (new `jobs` SQLite table),
   embedded live terminal in the dashboard. Frontend + read-only progress
