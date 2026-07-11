@@ -1,16 +1,27 @@
 # Build Progress
 
-> Living project memory. Update at the end of every phase so a fresh session
-> resumes without re-deriving context. See the master plan for full detail.
+> Living project memory / **historical build log**, phase-by-phase and
+> chunk-by-chunk. For the current-state architecture map (what exists today,
+> how the pieces fit, what's deferred on purpose), read
+> **`docs/ARCHITECTURE.md` first** — it supersedes the "Orientation for a
+> fresh Claude session" section further down this file, which describes the
+> pre-rebuild SQLite/Phase-0-6 world and is kept only for history.
 
-## Status: ALL PHASES COMPLETE (0–5) + Phase 6 dashboard — MVP pipeline end to end
+## Status: MVP phases (0-6) COMPLETE, then superseded by the goal.md platform
+## rebuild (14 chunks; 1-8 + chunk-1-Task-11 done, chunks 10-14 gated on
+## human-provided credentials) — see `CHECKPOINT_LAST.md` for the latest
+## session-by-session detail and `docs/ARCHITECTURE.md` for the current
+## system shape.
 
-The full pipeline is built and verified: `ingest -> select -> generate (Claude
-subscription) -> render (themed animated MP4) -> review dashboard -> assisted
-publish export`, with a once-daily idempotent runner + systemd/cron scheduling.
-Content memory (threads) drives dedupe + follow-ups; per-post themes match the
-news subject. Only Chromium frame-capture and live network steps are verified on
-the desktop (blocked in this container); all logic is verified here.
+The pipeline described in this file's phase log (SQLite, no job queue, no
+REST API, no scheduler, no Telegram bot) was real and shipped, but has since
+been substantially rebuilt: the store moved to Postgres/Supabase, a durable
+job queue + self-contained scheduler replaced ad hoc threading, a `/api/v1`
+REST API and a Telegram bot were added as new front ends onto a shared
+`services/` layer, structured logging was unified, and the renderer gained
+brand-color pinning + two new layout templates. **Read `docs/ARCHITECTURE.md`
+for how the system actually works today** — everything below this point is
+preserved as build history, not current-state documentation.
 
 ---
 
