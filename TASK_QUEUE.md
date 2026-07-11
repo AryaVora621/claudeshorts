@@ -34,17 +34,20 @@
 - Optional: Reddit OAuth so the disabled reddit sources work again.
 
 ## In-Progress
-- [IN_PROGRESS Claude/Fable5] goal.md rebuild implementation, chunks 1-8 via
+- [IN_PROGRESS Claude/Sonnet5] goal.md rebuild implementation, chunks 1-8 via
   subagent-driven development on branch `feature/platform-rebuild`.
-  **Chunks 1-7 code-complete** (chunk 1: store fully Postgres; chunk 2: job
+  **Chunks 1-8 code-complete** (chunk 1: store fully Postgres; chunk 2: job
   queue + worker; chunk 3: services/ layer; chunk 4: REST API at /api/v1;
   chunk 5: self-contained scheduler; chunk 6: unified structured logging;
-  chunk 7: LLM provider abstraction — claude_cli/api unchanged, new
-  local/openai_compat providers for Ollama/llama.cpp and any OpenAI-
-  compatible endpoint, registry-driven dispatch, 173/173 tests). Only
-  chunk 1's human-required Task 11 (real data migration) remains — see
-  Open. Progress ledger: `.superpowers/sdd/progress.md`. Next: chunk 8
-  (more renderer/video styles + final whole-branch review).
+  chunk 7: LLM provider abstraction; chunk 8: brand-color pinning + layout
+  selection + editorial/breaking renderer templates, all live-verified,
+  189/189 tests). Only chunk 1's human-required Task 11 (real data
+  migration) remains — see Open. Progress ledger:
+  `.superpowers/sdd/progress.md`. Next: final whole-branch review (most
+  capable model) + `superpowers:finishing-a-development-branch`, then an
+  AskUserQuestion check-in on chunks 10-14 credentials (a
+  `NEEDS_FROM_YOU.md` fill-in form is already sitting in the repo root for
+  this).
 - [IN_PROGRESS Claude/Opus] Live jobs dashboard: percent bars (phase + per-item),
   clickable job history that survives restarts (new `jobs` SQLite table),
   embedded live terminal in the dashboard. Frontend + read-only progress

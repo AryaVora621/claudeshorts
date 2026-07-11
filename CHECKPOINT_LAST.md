@@ -1,7 +1,60 @@
-# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-7 CODE-COMPLETE)
+# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-8 CODE-COMPLETE)
 
-Agent: Claude (Fable 5), branch `feature/platform-rebuild`. SDD ledger:
+Agent: Claude (Sonnet 5), branch `feature/platform-rebuild`. SDD ledger:
 `.superpowers/sdd/progress.md`.
+
+## Chunk 8 (more renderer/video styles): DONE, reviewed, verified live
+- New `claudeshorts/generate/style_rules.py`: pure `pin_brand_colors(theme,
+  brand_colors)` (case-insensitive, longest-substring-match brand-name
+  matching against `theme["subject"]`; no match = unchanged theme) and
+  `select_layout(item, layout_rules, default_layout)` (first-match-wins
+  keyword scan over title+summary; empty rules or no match = default).
+- `config/settings.yaml` gained a `styles:` section: `brand_colors`
+  (nvidia/anthropic/openai/google/meta/microsoft palettes),
+  `layout_rules` (breaking/editorial keyword lists), `default_layout:
+  slideshow`.
+- `posts.layout` TEXT column (default `slideshow`), both CREATE TABLE and
+  ALTER TABLE paths; `insert_post()` gained a keyword-only `layout` param.
+- `runner.py`'s shared `_persist_post` (used by both `run_generate` and
+  `generate_for_item`) now pins the theme and computes the layout before
+  every `insert_post` call — every generated post gets a brand-consistent
+  color scheme and a content-appropriate layout automatically, no LLM
+  involvement.
+- `render/bridge.py::build_spec` threads `post["layout"]` (defaulting to
+  `slideshow`) into the render spec; `renderer/render.mjs` resolves it to
+  a template file via an explicit `LAYOUTS` allowlist (`Object.hasOwn`
+  guarded — a truthy-lookup version was vulnerable to JS prototype-chain
+  bypass via `layout="constructor"`, caught and fixed in review).
+- Two new renderer templates, `editorial.html` (calm, whitespace-heavy,
+  serif, for deep-dive posts) and `breaking.html` (urgent, pulsing ticker
+  banner, fast bullet stagger, animated blob background) — both implement
+  the same `window.__init(spec)`/`window.__render(i, localMs, globalMs)`
+  contract as the pre-existing `slideshow.html`, so `render.mjs`'s
+  Playwright driving loop needed zero changes to support them.
+- **Live render verification performed for real** (chunk 8 Task 6): one
+  post rendered through all 3 layouts end-to-end via `python -m
+  claudeshorts.cli render <id>` against the local Postgres test DB.
+  `slideshow` unchanged from before this chunk (57.6s, dark bg, no
+  ticker/blob). `editorial` shows the calm whitespace look, no blob glow,
+  no ticker. `breaking` shows the pulsing green ticker banner + animated
+  blob background + faster bullet stagger. All three confirmed via
+  extracted ffmpeg frames; the temporary DB row mutation used for the test
+  was reverted exactly afterward.
+- Verified: 189/189 tests, 0 regressions.
+- Commits f117b99..a05055b.
+
+## Next action
+Final whole-branch review (most capable model available) covering all of
+chunks 1-8, then `superpowers:finishing-a-development-branch`. After that:
+per the user's standing instruction, use AskUserQuestion to summarize
+project state and collect whatever API keys/credentials are needed to
+unblock chunks 10-14 + the real Supabase migration — a `NEEDS_FROM_YOU.md`
+fill-in form was already handed to the user for this while chunk 8 Task 6
+was in flight; check whether it's been filled in before asking again.
+Human-required items unchanged (chunk 1 Task 11 real migration; chunks
+10-14 blocked on user credentials — do not start).
+
+---
 
 ## Chunk 7 (LLM provider abstraction): DONE, reviewed, verified live
 - New `claudeshorts/generate/providers/` package: base.py (LLMProvider
