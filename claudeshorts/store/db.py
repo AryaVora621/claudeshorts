@@ -16,7 +16,19 @@ from ..config import supabase_db_url
 # posts:        a generated piece of content + its lifecycle status (Phase 2+)
 # threads:      an ongoing storyline that posts attach to (content memory)
 # post_threads: many-to-many link between posts and threads
+# profiles:     multi-profile scope for independent content pipelines
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS profiles (
+    id            BIGSERIAL PRIMARY KEY,
+    slug          TEXT        NOT NULL UNIQUE,
+    display_name  TEXT        NOT NULL,
+    active        BOOLEAN     NOT NULL DEFAULT true,
+    auto_publish  BOOLEAN     NOT NULL DEFAULT false,
+    posts_per_day INTEGER     NOT NULL DEFAULT 3,
+    platforms     JSONB       NOT NULL DEFAULT '["youtube","tiktok","instagram"]'::jsonb,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS items (
     id            BIGSERIAL PRIMARY KEY,
     source        TEXT        NOT NULL,
@@ -138,6 +150,24 @@ CREATE TABLE IF NOT EXISTS schedules (
     last_run_job_id BIGINT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Multi-profile reshape: scope items/posts/threads/runs/schedules to a
+-- profile. NULL profile_id on legacy rows is resolved by
+-- scripts/migrate_profiles_backfill.py (Task 5), not by this schema.
+ALTER TABLE items     ADD COLUMN IF NOT EXISTS profile_id BIGINT REFERENCES profiles(id);
+ALTER TABLE posts     ADD COLUMN IF NOT EXISTS profile_id BIGINT REFERENCES profiles(id);
+ALTER TABLE threads   ADD COLUMN IF NOT EXISTS profile_id BIGINT REFERENCES profiles(id);
+ALTER TABLE runs      ADD COLUMN IF NOT EXISTS profile_id BIGINT REFERENCES profiles(id);
+ALTER TABLE schedules ADD COLUMN IF NOT EXISTS profile_id BIGINT REFERENCES profiles(id);
+
+DROP INDEX IF EXISTS idx_items_content_hash;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_items_content_hash
+    ON items(content_hash) WHERE profile_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_items_content_hash_profile
+    ON items(profile_id, content_hash);
+
+CREATE INDEX IF NOT EXISTS idx_posts_profile_status ON posts(profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_runs_profile_date ON runs(profile_id, run_date);
 """
 
 
