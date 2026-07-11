@@ -82,4 +82,6 @@ def run_forever(
 
 if __name__ == "__main__":
     import sys
+    from .. import logging_setup
+    logging_setup.configure_logging()
     run_forever(sys.argv[1] if len(sys.argv) > 1 else "worker-cli")

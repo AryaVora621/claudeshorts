@@ -3,6 +3,6 @@
 Public entrypoint: ``run_pipeline``. Scheduling units live in ``deploy/``.
 """
 
-from .runner import run_pipeline, setup_logging
+from .runner import run_pipeline
 
-__all__ = ["run_pipeline", "setup_logging"]
+__all__ = ["run_pipeline"]

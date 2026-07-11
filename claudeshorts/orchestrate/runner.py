@@ -12,6 +12,7 @@ import time
 from datetime import date
 from typing import Any, Callable
 
+from .. import logging_setup
 from .. import progress
 from ..config import settings
 from ..ingest import run_ingest
@@ -22,14 +23,6 @@ from ..store import connect, get_post, init_db
 from ..store.runs import finish_run, latest_run_for_date, start_run
 
 log = logging.getLogger("claudeshorts.orchestrate")
-
-
-def setup_logging(level: int = logging.INFO) -> None:
-    if not logging.getLogger().handlers:
-        logging.basicConfig(
-            level=level,
-            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        )
 
 
 def _retry(fn: Callable[[], Any], *, attempts: int = 4, base: float = 2.0,
@@ -59,7 +52,7 @@ def run_pipeline(
     `render_fn` is injectable for testing without a browser. Set `force` to run
     again on a day that already completed; `skip_render` to stop after generation.
     """
-    setup_logging()
+    logging_setup.configure_logging()
     init_db()
     cfg = settings()
     limit = limit or cfg.get("posts_per_day", 3)

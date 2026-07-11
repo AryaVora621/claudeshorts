@@ -95,6 +95,9 @@ def create_app() -> FastAPI:
     def _start_job_worker() -> None:
         import threading
 
+        from .. import logging_setup
+        logging_setup.configure_logging()
+
         from ..jobs.worker import run_forever
         from ..scheduling.scheduler import run_forever as run_scheduler_forever
         from ..scheduling.scheduler import seed_default_schedules

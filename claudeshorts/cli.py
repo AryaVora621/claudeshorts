@@ -12,6 +12,7 @@ import typer
 from dotenv import load_dotenv
 
 from . import __version__
+from . import logging_setup
 from .config import DB_PATH
 from .services import pipeline_service
 from .store import init_db
@@ -24,6 +25,11 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
+
+
+@app.callback()
+def _main() -> None:
+    logging_setup.configure_logging()
 
 
 @app.command("init-db")

@@ -88,5 +88,7 @@ def run_forever(*, poll_interval: float | None = None, max_iterations: int | Non
 
 
 if __name__ == "__main__":
+    from .. import logging_setup
+    logging_setup.configure_logging()
     seed_default_schedules()
     run_forever()
