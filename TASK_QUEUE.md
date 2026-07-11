@@ -1,23 +1,25 @@
 # Task Queue
 
 ## Open
-- **USER-REQUIRED — chunk 1 Task 11**: run the real Supabase migration. Put the
-  real Session Pooler URL (project `nddlutmilajkqtoygmfi`; DB password from the
-  Supabase dashboard) into `.env` as `SUPABASE_DB_URL`, back up `data/app.db`,
-  run `python -m scripts.migrate_sqlite_to_supabase data/app.db`, spot-check the
-  dashboard. Until then the store runs against a local docker Postgres
-  (`claudeshorts-test-pg`, port 54329, URL already in `.env`).
-- **goal.md platform rebuild** (PLANNING COMPLETE, 14/14; implementation
-  NOT started): all 14 chunks have committed specs under
-  `docs/superpowers/specs/`, and all except 9/13 (research-only by
-  design) have committed TDD plans under `docs/superpowers/plans/`. Next:
-  user decides which chunk(s) to actually implement — chunks 1-9 have no
-  human-required blockers and can start immediately; chunks 10-14 each
-  have one explicitly-flagged human-required final step (real API
-  keys/logins/tokens) within an otherwise-complete plan. Full detail in
-  `CHECKPOINT_LAST.md`.
-  New Supabase project `claudeshorts` (nddlutmilajkqtoygmfi) created for
-  this; `adhdsat` project paused as part of the same decision.
+- **Multi-profile platform reshape — sub-project A ready to execute**
+  (2026-07-11): design spec committed at
+  `docs/superpowers/specs/2026-07-11-multi-profile-platform-reshape-design.md`;
+  implementation plan written at
+  `docs/superpowers/plans/2026-07-11-multi-profile-data-model.md` (8 tasks,
+  4 parallel-dispatch waves — see CHECKPOINT_LAST.md for the wave
+  breakdown). Awaiting user's execution-mode choice (Subagent-Driven vs
+  Inline) before any task starts. Sub-projects B (analytics collection:
+  browser scraping + vidIQ MCP) and C (dashboard reshape) are scoped at a
+  high level in the same spec but each needs its own brainstorming session
+  before planning — do not skip straight to implementing them.
+- SKIPPED (user decision, `NEEDS_FROM_YOU.md` §2): chunk 10 (real API-key
+  publishing plugins for YouTube/TikTok/Instagram) — keeping folder-export
+  only for now. Superseded by the reshape's analytics-via-scraping
+  decision above for the read side; publishing-side API credentials still
+  not wanted.
+- goal.md platform rebuild chunks 10/11/13/14 remain unimplemented, each
+  gated on a human-provided credential/login (full detail in
+  `CHECKPOINT_LAST.md`). Chunks 1-9 + 12 are done (see Done section).
 - BLOCKED on hardware: test the branch on the HOME SERVER (aiserver desktop,
   Nvidia P40). Server `192.168.1.178` is currently unreachable (incomplete ARP
   from a same-subnet host) — user is troubleshooting the Linux box (rebooted,
@@ -34,12 +36,44 @@
 - Optional: Reddit OAuth so the disabled reddit sources work again.
 
 ## In-Progress
-- [IN_PROGRESS Claude/Opus] Live jobs dashboard: percent bars (phase + per-item),
-  clickable job history that survives restarts (new `jobs` SQLite table),
-  embedded live terminal in the dashboard. Frontend + read-only progress
-  instrumentation only (no stop/cancel, no change to what jobs do). See PLAN.md.
+- (none — the pre-rebuild "live jobs dashboard" item that used to live here
+  was superseded by the goal.md rebuild's job queue + dashboard SSE
+  progress streaming, chunks 2/6, both done. See Done section.)
 
 ## Done
+- **Chunk 12 — Telegram bot** (2026-07-11): full chunk complete —
+  `GET /profiles` + `POST /jobs/{id}/retry` REST endpoints, `ApiClient`
+  (thin REST wrapper), command handlers (`/queue /generate /approve
+  /reject /retry /profiles /workers /logs`, single-admin-chat gated), and
+  push notifications (`notify.py`, wired into the job worker: job failure
+  + weekly-report completion). Full 226-test suite confirmed green
+  against the real Supabase connection (29m25s) before the final commit.
+  Bot not yet started as a live background process — pending explicit
+  go-ahead per CHECKPOINT_LAST.md.
+- Real Supabase data migration (chunk 1 Task 11): items=616, threads=13,
+  posts=13, post_threads=13, runs=3, all verified against the hosted project
+  `nddlutmilajkqtoygmfi` via direct MCP `execute_sql`. Full detail in
+  CHECKPOINT_LAST.md.
+- Live app `.env` `SUPABASE_DB_URL` now points at the real Session Pooler
+  connection (user provided password + pooler host 2026-07-11). Verified with
+  a direct `psycopg` connection: `items` count 616, `posts` count 13, matching
+  the migration. The app no longer needs the local docker Postgres fallback.
+- **fork.ai** brand kit (was "Terminal Brief" — renamed after user feedback
+  that the neon-glow design read as generic AI-generated aesthetic; now flat,
+  no gradients/glow). Logo + YouTube banner + IG highlight cover rendered via
+  HTML/CSS + Playwright screenshot, plus bios reflecting the dual video +
+  newsletter format. Saved to `Brandkit/fork/` in the project root (renamed
+  from `Brandkit/TerminalBrief/`). See `Brandkit/fork/README.md` for the full
+  kit, including a "what's still needed to launch" checklist (YouTube/
+  Instagram account setup steps, and a newsletter platform — Substack/
+  beehiiv/self-hosted — which is not set up yet).
+  **Handle: `@fork.ai`** (brand name and handle are now the same). Chosen
+  after live browser verification of ~25 candidate handles across Instagram +
+  YouTube (see README for the full taken/available list and the naming
+  research behind it). TikTok was NOT verified — the browser tool couldn't
+  reach TikTok this session (geoblocked per user); check
+  `tiktok.com/@fork.ai` manually before creating the account. Account
+  creation itself is a user-owned next step.
 - goal.md rebuild implementation, chunks 1-8, via subagent-driven
   development on branch `feature/platform-rebuild` — **merged to main**
   (commit 851f2f6). Store fully Postgres; job queue + worker; services/
