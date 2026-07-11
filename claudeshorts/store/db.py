@@ -39,7 +39,6 @@ CREATE TABLE IF NOT EXISTS items (
     content_hash  TEXT        NOT NULL,
     fetched_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX IF NOT EXISTS idx_items_content_hash ON items(content_hash);
 CREATE INDEX IF NOT EXISTS idx_items_published_at ON items(published_at);
 
 CREATE TABLE IF NOT EXISTS posts (
@@ -160,11 +159,17 @@ ALTER TABLE threads   ADD COLUMN IF NOT EXISTS profile_id BIGINT REFERENCES prof
 ALTER TABLE runs      ADD COLUMN IF NOT EXISTS profile_id BIGINT REFERENCES profiles(id);
 ALTER TABLE schedules ADD COLUMN IF NOT EXISTS profile_id BIGINT REFERENCES profiles(id);
 
+-- items.content_hash's dedupe key becomes (profile_id, content_hash): two
+-- profiles independently covering the same story is expected, not a dupe.
+-- Plain `(profile_id, content_hash)` would NOT enforce that for legacy/
+-- unassigned rows: SQL unique indexes never treat two NULLs as equal, so
+-- every item ingested before the Task-5 backfill assigns profile_id would
+-- dedupe against nothing at all. COALESCE(profile_id, 0) collapses all
+-- NULL rows into one shared dedupe scope, matching pre-multi-profile
+-- behavior until backfill runs, while still scoping by profile_id once set.
 DROP INDEX IF EXISTS idx_items_content_hash;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_items_content_hash
-    ON items(content_hash) WHERE profile_id IS NULL;
-CREATE INDEX IF NOT EXISTS idx_items_content_hash_profile
-    ON items(profile_id, content_hash);
+    ON items(COALESCE(profile_id, 0), content_hash);
 
 CREATE INDEX IF NOT EXISTS idx_posts_profile_status ON posts(profile_id, status);
 CREATE INDEX IF NOT EXISTS idx_runs_profile_date ON runs(profile_id, run_date);

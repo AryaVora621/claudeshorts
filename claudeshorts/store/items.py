@@ -10,26 +10,21 @@ ITEM_FIELDS = ("source", "url", "title", "summary", "published_at", "content_has
 
 
 def insert_item(conn: psycopg.Connection, item: dict[str, Any]) -> bool:
-    """Insert an item, ignoring duplicates (by unique content_hash).
+    """Insert an item, ignoring duplicates (by unique (profile_id, content_hash)).
 
     Returns True if a new row was stored, False if it was a duplicate.
-    During profile backfill, profile_id is NULL and uniqueness is enforced by
-    a partial index on (content_hash) WHERE profile_id IS NULL.
+    Atomic via ON CONFLICT so concurrent ingestion can't race two inserts of
+    the same item into a duplicate row.
     """
-    h = item.get("content_hash")
-    if conn.execute(
-        "SELECT 1 FROM items WHERE content_hash = %s AND profile_id IS NULL",
-        (h,),
-    ).fetchone():
-        return False
-    conn.execute(
+    cur = conn.execute(
         "INSERT INTO items "
         "(source, url, title, summary, published_at, content_hash) "
         "VALUES (%(source)s, %(url)s, %(title)s, %(summary)s, "
-        "%(published_at)s, %(content_hash)s)",
+        "%(published_at)s, %(content_hash)s) "
+        "ON CONFLICT (COALESCE(profile_id, 0), content_hash) DO NOTHING",
         {k: item.get(k) for k in ITEM_FIELDS},
     )
-    return True
+    return cur.rowcount > 0
 
 
 def insert_manual_item(
