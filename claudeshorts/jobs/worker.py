@@ -11,11 +11,16 @@ from __future__ import annotations
 import logging
 import time
 
-from .. import progress
+from .. import logging_setup, progress
 from ..config import settings
 from . import queue, registry
 
 log = logging.getLogger("claudeshorts.jobs.worker")
+# Attach the context filter directly to this logger (not just to whatever
+# handler configure_logging() installs) so job_id/worker_id land on every
+# record emitted here even when the worker runs standalone or under a test
+# harness (e.g. caplog) that never called configure_logging().
+log.addFilter(logging_setup._ContextFilter())
 
 
 def dispatch_one(worker_id: str) -> bool:
@@ -32,37 +37,42 @@ def dispatch_one(worker_id: str) -> bool:
         return True
 
     handler = registry.JOB_HANDLERS.get(job["job_type"])
-    if handler is None:
-        queue.fail(job["id"], f"no handler registered for job_type {job['job_type']!r}")
-        return True
+    with logging_setup.bind(job_id=job["id"], worker_id=worker_id):
+        if handler is None:
+            queue.fail(job["id"], f"no handler registered for job_type {job['job_type']!r}")
+            return True
 
-    def _sink(kind: str, payload: dict) -> None:
-        from ..store import db, jobs as store_jobs
+        def _sink(kind: str, payload: dict) -> None:
+            from ..store import db, jobs as store_jobs
+            try:
+                with db.connect() as conn:
+                    if kind == "phase":
+                        store_jobs.save_snapshot(conn, job["id"], {
+                            "phase_index": payload["index"], "phase_total": payload["total"],
+                            "phase_label": payload.get("label", ""),
+                        })
+                    elif kind == "step":
+                        store_jobs.save_snapshot(conn, job["id"], {
+                            "progress_current": payload["current"],
+                            "progress_total": payload["total"],
+                            "progress_label": payload.get("label", ""),
+                        })
+            except Exception:
+                pass
+
+        progress.set_sink(_sink)
+        started = time.monotonic()
         try:
-            with db.connect() as conn:
-                if kind == "phase":
-                    store_jobs.save_snapshot(conn, job["id"], {
-                        "phase_index": payload["index"], "phase_total": payload["total"],
-                        "phase_label": payload.get("label", ""),
-                    })
-                elif kind == "step":
-                    store_jobs.save_snapshot(conn, job["id"], {
-                        "progress_current": payload["current"],
-                        "progress_total": payload["total"],
-                        "progress_label": payload.get("label", ""),
-                    })
-        except Exception:
-            pass
-
-    progress.set_sink(_sink)
-    try:
-        result = handler(job["payload"])
-        queue.complete(job["id"], str(result) if result is not None else None)
-    except Exception as exc:
-        log.exception("job %s (%s) failed", job["id"], job["job_type"])
-        queue.fail(job["id"], str(exc))
-    finally:
-        progress.clear_sink()
+            result = handler(job["payload"])
+            queue.complete(job["id"], str(result) if result is not None else None)
+            log.info("job %s (%s) completed in %.1fs", job["id"], job["job_type"],
+                      time.monotonic() - started)
+        except Exception as exc:
+            log.error("job %s (%s) failed after %.1fs: %s", job["id"], job["job_type"],
+                       time.monotonic() - started, exc)
+            queue.fail(job["id"], str(exc))
+        finally:
+            progress.clear_sink()
     return True
 
 

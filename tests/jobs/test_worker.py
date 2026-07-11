@@ -59,3 +59,14 @@ def test_dispatch_one_cancels_claimed_job_with_cancel_flag():
         row = conn.execute("SELECT * FROM jobs WHERE id = %s", (job_id,)).fetchone()
     assert row["status"] == "CANCELLED"
     assert row["finished_at"] is not None
+
+
+def test_dispatch_one_logs_job_id_and_duration(caplog):
+    import logging
+    job_id = queue.enqueue("ingest", {}, name="ingest")
+    with patch.dict("claudeshorts.jobs.registry.JOB_HANDLERS", {"ingest": lambda p: "ok"}):
+        with caplog.at_level(logging.INFO, logger="claudeshorts.jobs.worker"):
+            worker.dispatch_one("worker-1")
+    matching = [r for r in caplog.records if r.job_id == job_id]
+    assert matching
+    assert "completed in" in matching[-1].message or "completed in" in matching[-1].getMessage()
