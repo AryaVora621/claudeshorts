@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from ..services import posts_service
-from ..store import all_posts, connect, get_post
 from .errors import service_call
 from .schemas import ApproveResponse, PostIdResponse, RejectRequest, ScheduleRequest, ScheduleResponse
 
@@ -14,17 +13,12 @@ router = APIRouter(prefix="/posts", tags=["posts"])
 
 @router.get("")
 def list_posts(limit: int = 200) -> list[dict[str, Any]]:
-    with connect() as conn:
-        return all_posts(conn, limit)
+    return service_call(posts_service.list_posts, limit)
 
 
 @router.get("/{post_id}")
 def get_post_route(post_id: int) -> dict[str, Any]:
-    with connect() as conn:
-        post = get_post(conn, post_id)
-    if not post:
-        raise HTTPException(404, f"post {post_id} not found")
-    return post
+    return service_call(posts_service.get_post, post_id)
 
 
 @router.post("/{post_id}/approve", response_model=ApproveResponse)

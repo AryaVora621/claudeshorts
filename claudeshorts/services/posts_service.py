@@ -9,14 +9,29 @@ from __future__ import annotations
 from typing import Any
 
 from ..publish import export_post
-from ..store import connect, get_post, set_schedule, set_status
+from ..store import all_posts as _store_all_posts
+from ..store import connect
+from ..store import get_post as _store_get_post
+from ..store import set_schedule, set_status
 
 
 def _require_post(conn, post_id: int) -> dict[str, Any]:
-    post = get_post(conn, post_id)
+    post = _store_get_post(conn, post_id)
     if not post:
         raise ValueError(f"post {post_id} not found")
     return post
+
+
+def list_posts(limit: int = 50) -> list[dict[str, Any]]:
+    """Read-only listing used by the dashboard and REST API."""
+    with connect() as conn:
+        return _store_all_posts(conn, limit)
+
+
+def get_post(post_id: int) -> dict[str, Any]:
+    """Fetch a single post, raising when it does not exist."""
+    with connect() as conn:
+        return _require_post(conn, post_id)
 
 
 def approve_post(post_id: int) -> dict[str, Any]:

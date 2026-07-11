@@ -79,6 +79,23 @@ def test_export_post_now_not_found_raises():
         posts_service.export_post_now(999999)
 
 
+def test_list_posts_returns_inserted_post():
+    post_id = _mk_post()
+    result = posts_service.list_posts()
+    assert any(p["id"] == post_id for p in result)
+
+
+def test_get_post_not_found_raises():
+    with pytest.raises(ValueError, match="not found"):
+        posts_service.get_post(999999)
+
+
+def test_get_post_returns_post():
+    post_id = _mk_post()
+    result = posts_service.get_post(post_id)
+    assert result["id"] == post_id
+
+
 def test_export_post_now_approves_and_exports(monkeypatch):
     post_id = _mk_post()
     called = {}
