@@ -30,7 +30,7 @@ const LAYOUTS = {
 };
 
 function templatePathFor(layout) {
-  const file = LAYOUTS[layout] || LAYOUTS.slideshow;
+  const file = Object.hasOwn(LAYOUTS, layout) ? LAYOUTS[layout] : LAYOUTS.slideshow;
   return join(HERE, "templates", file);
 }
 
