@@ -29,7 +29,7 @@ class _ContextFilter(logging.Filter):
 
 class _JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        return json.dumps({
+        entry = {
             "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
             "level": record.levelname,
             "logger": record.name,
@@ -37,7 +37,12 @@ class _JsonFormatter(logging.Formatter):
             "job_id": getattr(record, "job_id", None),
             "worker_id": getattr(record, "worker_id", None),
             "platform": getattr(record, "platform", None),
-        })
+        }
+        if record.exc_info:
+            entry["exc_info"] = self.formatException(record.exc_info)
+        if record.stack_info:
+            entry["stack_info"] = self.formatStack(record.stack_info)
+        return json.dumps(entry)
 
 
 _TEXT_FORMAT = (

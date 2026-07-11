@@ -58,3 +58,16 @@ def test_json_formatter_produces_parseable_output(capsys):
     assert parsed["message"] == "hello"
     assert parsed["job_id"] == 5
     assert parsed["platform"] == "youtube"
+
+
+def test_json_formatter_includes_traceback(capsys):
+    logging_setup.configure_logging(fmt="json")
+    log = logging.getLogger("claudeshorts.test")
+    try:
+        raise RuntimeError("boom")
+    except RuntimeError:
+        log.exception("failed")
+    line = [l for l in capsys.readouterr().err.splitlines() if l.strip()][-1]
+    parsed = json.loads(line)
+    assert parsed["message"] == "failed"
+    assert "RuntimeError: boom" in parsed["exc_info"]
