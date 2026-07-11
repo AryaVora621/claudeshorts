@@ -7,8 +7,14 @@ from __future__ import annotations
 from typing import Any
 
 from ..jobs import queue as job_queue
-from ..store import connect, insert_manual_item
+from ..store import connect, insert_manual_item, latest_items as _store_latest_items
 from ..store.pins import pin_item, unpin_item
+
+
+def list_articles(limit: int = 50) -> list[dict[str, Any]]:
+    """Read-only listing used by the dashboard and REST API."""
+    with connect() as conn:
+        return _store_latest_items(conn, limit)
 
 
 def add_manual_article(

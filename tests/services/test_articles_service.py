@@ -37,3 +37,13 @@ def test_generate_from_item_enqueues_job():
     result = articles_service.add_manual_article(title="Gen Me", action="pin")
     out = articles_service.generate_from_item(result["item_id"])
     assert isinstance(out["job_id"], int)
+
+
+def test_list_articles():
+    # Seed an item
+    result = articles_service.add_manual_article(title="List Me")
+    item_id = result["item_id"]
+    # List articles and verify the item is included
+    articles = articles_service.list_articles(limit=50)
+    assert isinstance(articles, list)
+    assert any(item["id"] == item_id for item in articles)
