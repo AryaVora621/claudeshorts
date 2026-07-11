@@ -57,3 +57,15 @@ def resume(job_id: int) -> dict[str, Any]:
     if not job_queue.resume(job_id):
         _raise_for_blocked_transition(job_id)
     return {"job_id": job_id}
+
+
+@router.post("/{job_id}/retry")
+def retry(job_id: int) -> dict[str, Any]:
+    with connect() as conn:
+        row = store_jobs.get_job(conn, job_id)
+    if not row:
+        raise HTTPException(404, f"job {job_id} not found")
+    if row["status"] != "FAILED":
+        raise HTTPException(409, f"job {job_id} is not failed (status={row['status']})")
+    new_id = job_queue.enqueue(row["job_type"], row["payload"], name=row["name"])
+    return {"job_id": new_id}
