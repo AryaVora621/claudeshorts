@@ -1,7 +1,32 @@
-# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-4 CODE-COMPLETE)
+# CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-5 CODE-COMPLETE)
 
 Agent: Claude (Fable 5), branch `feature/platform-rebuild`. SDD ledger:
 `.superpowers/sdd/progress.md`.
+
+## Chunk 5 (scheduling engine): DONE, reviewed, verified live
+- New `claudeshorts/scheduling/` package: compute.py (pure next_run_at —
+  daily_at/every_minutes/weekday model, no cron), store.py (upsert/list_due/
+  mark_ran; DO UPDATE never touches next_run_at/enabled → restart-safe),
+  scheduler.py (polling tick + daemon thread started in create_app alongside
+  the worker; enqueues via jobs.queue, never runs jobs).
+- Three defaults seeded idempotently from settings `schedule:`: daily
+  full_run 08:00, hourly scheduled-posts drain, weekly report Mon 09:00.
+- New drain_scheduled_posts_service (delegates to publish_due_posts — no
+  double export) + reporting_service.weekly_report; both registered as job
+  types.
+- Review loop caught + fixed: first-boot immediate fire (seed now computes
+  real initial next_run_at), duplicate enqueue when mark_ran fails
+  (per-schedule containment), poll_interval=0 coercion.
+- Verified: 143/143 tests; live boot seeds 3 schedules all with future
+  next_run_at and 0 jobs fired.
+- Commits 87e11c4..bedb0a8.
+
+## Next action
+Chunk 6 (structured logging) via the same SDD loop; then 7-8.
+Human-required items unchanged (chunk 1 Task 11 real migration; chunks
+10-14 blocked on user credentials — do not start).
+
+---
 
 ## Chunk 4 (REST API over services): DONE, reviewed, verified live
 - New `claudeshorts/api/` package mounted at `/api/v1` inside the dashboard
