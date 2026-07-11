@@ -112,3 +112,10 @@ jobs:
   base_delay_seconds: 5
   max_delay_seconds: 300
   poll_interval_seconds: 1.0
+
+schedule:
+  daily_run_time: "08:00"       # HH:MM local time for the self-triggered daily run
+  drain_every_minutes: 60       # how often the scheduled-posts queue is drained
+  weekly_report_weekday: 0      # 0=Monday
+  weekly_report_time: "09:00"
+  poll_interval_seconds: 30     # scheduler poll cadence (coarser than the job worker's)

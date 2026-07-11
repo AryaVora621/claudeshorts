@@ -25,3 +25,13 @@ def test_jobs_table_has_queue_columns():
         assert row["cancel_requested"] is False
         assert row["pause_requested"] is False
         assert row["locked_by"] is None
+
+
+def test_schedules_table_exists():
+    with db.connect() as conn:
+        row = conn.execute(
+            "INSERT INTO schedules (name, job_type, kind, daily_at) "
+            "VALUES ('t', 'full_run', 'daily_at', '08:00') RETURNING *"
+        ).fetchone()
+        assert row["enabled"] is True
+        assert row["every_minutes"] is None

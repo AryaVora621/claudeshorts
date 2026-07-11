@@ -4,7 +4,7 @@ import pytest
 
 from claudeshorts.store import db
 
-_TABLES = ("post_threads", "pins", "jobs", "runs", "posts", "threads", "items")
+_TABLES = ("post_threads", "pins", "jobs", "runs", "posts", "threads", "items", "schedules")
 
 
 @pytest.fixture(autouse=True)

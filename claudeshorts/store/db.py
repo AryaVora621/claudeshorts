@@ -118,6 +118,21 @@ ALTER TABLE jobs ADD COLUMN IF NOT EXISTS locked_at TIMESTAMPTZ;
 ALTER TABLE jobs ALTER COLUMN status SET DEFAULT 'PENDING';
 
 CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, next_attempt_at);
+
+CREATE TABLE IF NOT EXISTS schedules (
+    id              BIGSERIAL PRIMARY KEY,
+    name            TEXT        NOT NULL UNIQUE,
+    job_type        TEXT        NOT NULL,
+    payload         JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    kind            TEXT        NOT NULL,
+    daily_at        TEXT,
+    every_minutes   INTEGER,
+    weekday         INTEGER,
+    enabled         BOOLEAN     NOT NULL DEFAULT true,
+    next_run_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_run_job_id BIGINT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 """
 
 
