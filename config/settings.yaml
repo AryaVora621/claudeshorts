@@ -119,3 +119,7 @@ schedule:
   weekly_report_weekday: 0      # 0=Monday
   weekly_report_time: "09:00"
   poll_interval_seconds: 30     # scheduler poll cadence (coarser than the job worker's)
+
+logging:
+  format: "text"   # "text" (human-readable, default) or "json" (RPi/headless)
+  level: "INFO"
