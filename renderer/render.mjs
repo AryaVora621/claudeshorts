@@ -22,7 +22,17 @@ import {
 
 const execFileP = promisify(execFile);
 const HERE = dirname(fileURLToPath(import.meta.url));
-const TEMPLATE = join(HERE, "templates", "slideshow.html");
+
+const LAYOUTS = {
+  slideshow: "slideshow.html",
+  editorial: "editorial.html",
+  breaking: "breaking.html",
+};
+
+function templatePathFor(layout) {
+  const file = LAYOUTS[layout] || LAYOUTS.slideshow;
+  return join(HERE, "templates", file);
+}
 
 function arg(name, fallback = null) {
   const i = process.argv.indexOf(name);
@@ -120,7 +130,7 @@ async function main() {
   // --- 3. capture frames (Playwright, deterministic) ---------------------
   const browser = await chromium.launch({ args: ["--no-sandbox"] });
   const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
-  await page.goto(pathToFileURL(TEMPLATE).href);
+  await page.goto(pathToFileURL(templatePathFor(spec.layout)).href);
   await page.evaluate((s) => window.__init(s), spec);
   for (let f = 0; f < tl.frames.length; f++) {
     const fr = tl.frames[f];

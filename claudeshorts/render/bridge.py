@@ -100,6 +100,7 @@ def build_spec(post: dict) -> dict[str, Any]:
     return {
         "title": post.get("title"),
         "theme": post.get("theme") or {},
+        "layout": post.get("layout") or "slideshow",
         "slides": post.get("slides") or [],
         "channel": channel,
         "video": cfg.get("video", {}),
