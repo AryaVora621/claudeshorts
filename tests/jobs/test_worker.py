@@ -61,6 +61,42 @@ def test_dispatch_one_cancels_claimed_job_with_cancel_flag():
     assert row["finished_at"] is not None
 
 
+def test_dispatch_one_notifies_on_weekly_report_completion():
+    job_id = queue.enqueue("weekly_report", {}, name="weekly_report")
+    with patch.dict(
+        "claudeshorts.jobs.registry.JOB_HANDLERS",
+        {"weekly_report": lambda payload: "report text"},
+    ), patch("claudeshorts.jobs.worker.send_notification") as mock_notify:
+        worker.dispatch_one("worker-1")
+    mock_notify.assert_called_once()
+    assert str(job_id) in mock_notify.call_args[0][0]
+
+
+def test_dispatch_one_does_not_notify_on_ordinary_completion():
+    with patch.dict(
+        "claudeshorts.jobs.registry.JOB_HANDLERS",
+        {"ingest": lambda payload: "42 items"},
+    ), patch("claudeshorts.jobs.worker.send_notification") as mock_notify:
+        queue.enqueue("ingest", {}, name="ingest")
+        worker.dispatch_one("worker-1")
+    mock_notify.assert_not_called()
+
+
+def test_dispatch_one_notifies_on_failure():
+    job_id = queue.enqueue("ingest", {}, name="ingest", max_attempts=1)
+
+    def _boom(payload):
+        raise RuntimeError("kaboom")
+
+    with patch.dict("claudeshorts.jobs.registry.JOB_HANDLERS", {"ingest": _boom}), patch(
+        "claudeshorts.jobs.worker.send_notification"
+    ) as mock_notify:
+        worker.dispatch_one("worker-1")
+    mock_notify.assert_called_once()
+    assert str(job_id) in mock_notify.call_args[0][0]
+    assert "kaboom" in mock_notify.call_args[0][0]
+
+
 def test_dispatch_one_logs_job_id_and_duration(caplog):
     import logging
     job_id = queue.enqueue("ingest", {}, name="ingest")

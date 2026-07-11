@@ -13,6 +13,7 @@ import time
 
 from .. import logging_setup, progress
 from ..config import settings
+from ..telegram_bot.notify import send_notification
 from . import queue, registry
 
 log = logging.getLogger("claudeshorts.jobs.worker")
@@ -67,10 +68,15 @@ def dispatch_one(worker_id: str) -> bool:
             queue.complete(job["id"], str(result) if result is not None else None)
             log.info("job %s (%s) completed in %.1fs", job["id"], job["job_type"],
                       time.monotonic() - started)
+            if job["job_type"] == "weekly_report":
+                send_notification(
+                    f"Weekly report ready — job #{job['id']}. Use /logs {job['id']} to view."
+                )
         except Exception as exc:
             log.error("job %s (%s) failed after %.1fs: %s", job["id"], job["job_type"],
                        time.monotonic() - started, exc, exc_info=True)
             queue.fail(job["id"], str(exc))
+            send_notification(f"Job #{job['id']} ({job['job_type']}) failed: {exc}")
         finally:
             progress.clear_sink()
     return True
