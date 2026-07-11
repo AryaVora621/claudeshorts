@@ -1,3 +1,40 @@
+# CHECKPOINT / RESUME REPORT - 2026-07-11 (goal.md platform rebuild — chunks 1-8 MERGED TO MAIN)
+
+Agent: Claude (Sonnet 5), branch `main` (merged from `feature/platform-rebuild`,
+now deleted). SDD ledger: `.superpowers/sdd/progress.md`.
+
+## Status: ALL 8 chunks of the goal.md rebuild are code-complete, reviewed, and merged
+Every chunk went through implementer → task-reviewer → fix-and-re-review;
+the whole branch then got one final cross-cutting review (Opus) before
+merge. 190/190 tests pass on main at commit 851f2f6.
+
+## Final whole-branch review caught one real cross-chunk gap
+Chunk 1's `mark_running_interrupted()` (meant to recover jobs orphaned by
+a crashed worker) was never wired up after chunk 2 rewrote the job state
+machine to uppercase status literals — it still queried lowercase
+`'running'`, so it silently matched nothing even if called. Fixed:
+uppercase vocabulary, flips orphans to `FAILED` (not the unrecognized
+`'interrupted'`), wired into a new FastAPI `lifespan` handler that runs
+before the worker thread starts polling. Also cleaned up: dead
+`insert_job`, missing `.badge.failed`/`.badge.paused` CSS,
+`@app.on_event("startup")` → `lifespan` migration (empirically verified
+behavior-preserving under both live boot and TestClient). Commit
+`851f2f6`, re-reviewed, "Ready to merge: Yes".
+
+## Next action
+Nothing left to build without human input. Remaining work is entirely
+gated on the user:
+1. Chunk 1 Task 11 — real Supabase data migration (needs DB password).
+2. Chunks 10-14 — publishing plugins, browser-profile logins, Telegram
+   bot, Veo/Higgsfield, extra LLM provider key. Each needs a real
+   credential/login/decision from the user.
+A `NEEDS_FROM_YOU.md` fill-in form is in the repo root collecting all of
+these in one place; the user has not filled it in yet as of this
+checkpoint. An AskUserQuestion check-in was sent summarizing project state
+and pointing at this file.
+
+---
+
 # CHECKPOINT / RESUME REPORT - 2026-07-11 (implementation session — chunks 1-8 CODE-COMPLETE)
 
 Agent: Claude (Sonnet 5), branch `feature/platform-rebuild`. SDD ledger:

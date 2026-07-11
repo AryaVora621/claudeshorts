@@ -34,26 +34,29 @@
 - Optional: Reddit OAuth so the disabled reddit sources work again.
 
 ## In-Progress
-- [IN_PROGRESS Claude/Sonnet5] goal.md rebuild implementation, chunks 1-8 via
-  subagent-driven development on branch `feature/platform-rebuild`.
-  **Chunks 1-8 code-complete** (chunk 1: store fully Postgres; chunk 2: job
-  queue + worker; chunk 3: services/ layer; chunk 4: REST API at /api/v1;
-  chunk 5: self-contained scheduler; chunk 6: unified structured logging;
-  chunk 7: LLM provider abstraction; chunk 8: brand-color pinning + layout
-  selection + editorial/breaking renderer templates, all live-verified,
-  189/189 tests). Only chunk 1's human-required Task 11 (real data
-  migration) remains — see Open. Progress ledger:
-  `.superpowers/sdd/progress.md`. Next: final whole-branch review (most
-  capable model) + `superpowers:finishing-a-development-branch`, then an
-  AskUserQuestion check-in on chunks 10-14 credentials (a
-  `NEEDS_FROM_YOU.md` fill-in form is already sitting in the repo root for
-  this).
 - [IN_PROGRESS Claude/Opus] Live jobs dashboard: percent bars (phase + per-item),
   clickable job history that survives restarts (new `jobs` SQLite table),
   embedded live terminal in the dashboard. Frontend + read-only progress
   instrumentation only (no stop/cancel, no change to what jobs do). See PLAN.md.
 
 ## Done
+- goal.md rebuild implementation, chunks 1-8, via subagent-driven
+  development on branch `feature/platform-rebuild` — **merged to main**
+  (commit 851f2f6). Store fully Postgres; job queue + worker; services/
+  layer; REST API at /api/v1; self-contained scheduler; unified
+  structured logging; LLM provider abstraction (claude_cli/api/local/
+  openai_compat); brand-color pinning + editorial/breaking renderer
+  templates. Final whole-branch review (Opus) found and fixed one real
+  cross-chunk gap: orphaned RUNNING jobs never recovered after a worker
+  crash (mark_running_interrupted existed but was unwired and used stale
+  lowercase vocabulary) — now wired into startup via a FastAPI lifespan
+  handler, flips orphans to FAILED. 190/190 tests. Progress ledger:
+  `.superpowers/sdd/progress.md`. Feature branch deleted (merged, not
+  pushed to origin). Remaining: chunk 1 Task 11 (real data migration) and
+  chunks 10-14 (publishing plugins, browser profiles, Telegram bot,
+  Veo, extra LLM keys) — all human-required, see Open. A
+  `NEEDS_FROM_YOU.md` fill-in form is sitting in the repo root collecting
+  the needed credentials/decisions for all of these.
 - Fixed macOS/kitty launcher minimal-PATH failure: `start-dashboard.sh` now
   prepends standard macOS local install paths and `find_python()` falls back to
   `.venv/bin/python`, Homebrew, `/usr/local/bin`, and python.org framework
