@@ -51,3 +51,11 @@ def test_run_full_pipeline_service_delegates():
         result = pipeline_service.run_full_pipeline_service(force=True)
     mock_fn.assert_called_once_with(limit=None, force=True, skip_render=False)
     assert result == {"date": "2026-07-10"}
+
+
+def test_drain_scheduled_posts_service_delegates():
+    with patch("claudeshorts.services.pipeline_service.publish_due_posts") as mock_fn:
+        mock_fn.return_value = [1, 2]
+        result = pipeline_service.drain_scheduled_posts_service()
+    mock_fn.assert_called_once_with()
+    assert result == [1, 2]

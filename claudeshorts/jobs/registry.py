@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from ..services import pipeline_service
+from ..services import pipeline_service, reporting_service
 
 
 def _render_post_job(payload: dict[str, Any]) -> str:
@@ -30,3 +30,6 @@ JOB_HANDLERS: dict[str, Callable[[dict[str, Any]], Any]] = {
     "generate_from_item": lambda payload: pipeline_service.generate_from_item_service(payload["item_id"]),
     "render_post": _render_post_job,
 }
+
+JOB_HANDLERS["drain_scheduled_posts"] = lambda payload: pipeline_service.drain_scheduled_posts_service()
+JOB_HANDLERS["weekly_report"] = lambda payload: reporting_service.weekly_report()

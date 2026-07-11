@@ -11,6 +11,7 @@ from typing import Any, Callable
 from ..generate import generate_for_item, run_generate
 from ..ingest import run_ingest
 from ..orchestrate import run_pipeline
+from ..publish import publish_due_posts
 from ..render import render_post
 from ..review import assemble_review
 from ..store import connect, get_post
@@ -49,3 +50,7 @@ def run_full_pipeline_service(
     limit: int | None = None, force: bool = False, skip_render: bool = False,
 ) -> dict[str, Any]:
     return run_pipeline(limit=limit, force=force, skip_render=skip_render)
+
+
+def drain_scheduled_posts_service() -> list[int]:
+    return publish_due_posts()
