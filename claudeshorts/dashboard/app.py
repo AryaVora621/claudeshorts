@@ -12,9 +12,12 @@ live to the browser (see ``jobs`` + the ``/jobs`` routes).
 
 from __future__ import annotations
 
+import logging
 import re
+from contextlib import asynccontextmanager
 from datetime import date, datetime
 from pathlib import Path
+from typing import AsyncIterator
 from urllib.parse import parse_qs, urlencode
 
 from fastapi import FastAPI, Request
@@ -30,6 +33,8 @@ from . import auth, jobs, settings_io
 
 _HERE = Path(__file__).resolve().parent
 _templates = Jinja2Templates(directory=str(_HERE / "templates"))
+
+log = logging.getLogger("claudeshorts.dashboard.app")
 
 
 def _format_timestamp(value: object, length: int | None) -> str:
@@ -86,28 +91,41 @@ def _media_path(post_id: int, name: str) -> Path | None:
     return rendered if rendered.exists() else None
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Startup-only: configure logging, sweep orphaned RUNNING jobs left by a
+    crashed process, then spin up the worker + scheduler daemon threads. No
+    shutdown behavior is needed — both threads are daemons that die with the
+    process, so this just yields with nothing after it."""
+    import threading
+
+    from .. import logging_setup
+    logging_setup.configure_logging()
+
+    from ..store import db, jobs as store_jobs
+    with db.connect() as conn:
+        n = store_jobs.mark_running_interrupted(conn)
+    if n:
+        log.warning("startup: flagged %d orphaned RUNNING job(s) as FAILED", n)
+
+    from ..jobs.worker import run_forever
+    from ..scheduling.scheduler import run_forever as run_scheduler_forever
+    from ..scheduling.scheduler import seed_default_schedules
+
+    threading.Thread(
+        target=run_forever, args=("dashboard-worker",), daemon=True,
+    ).start()
+
+    seed_default_schedules()
+    threading.Thread(target=run_scheduler_forever, daemon=True).start()
+
+    yield
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="claudeshorts dashboard")
+    app = FastAPI(title="claudeshorts dashboard", lifespan=_lifespan)
     app.mount("/static", StaticFiles(directory=str(_HERE / "static")), name="static")
     app.include_router(api.router)
-
-    @app.on_event("startup")
-    def _start_job_worker() -> None:
-        import threading
-
-        from .. import logging_setup
-        logging_setup.configure_logging()
-
-        from ..jobs.worker import run_forever
-        from ..scheduling.scheduler import run_forever as run_scheduler_forever
-        from ..scheduling.scheduler import seed_default_schedules
-
-        threading.Thread(
-            target=run_forever, args=("dashboard-worker",), daemon=True,
-        ).start()
-
-        seed_default_schedules()
-        threading.Thread(target=run_scheduler_forever, daemon=True).start()
 
     def page(request: Request, name: str, **ctx):
         ctx.setdefault("active", "")

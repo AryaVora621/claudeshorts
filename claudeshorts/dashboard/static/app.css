@@ -69,11 +69,14 @@ tr:hover td{background:var(--panel)}
 .badge.approved{color:var(--green)} .badge.exported{background:rgba(29,185,84,.18);color:#7be0a0}
 .badge.rejected{color:var(--red)}
 /* Job-queue vocabulary (uppercase at the source, lowercased for the class):
-   completed groups with the legacy "ok", failed with "error", pending/retrying
-   with "running", cancelled/interrupted are neutral. */
+   completed groups with the legacy "ok", pending/retrying/running are amber
+   (in progress), failed is a real failure state (--red, same family as the
+   "not ready" error badge above but with its own rule so amber isn't
+   disturbed), cancelled/interrupted/paused are neutral. */
 .badge.ok,.badge.completed{color:var(--green)}
 .badge.error,.badge.running,.badge.pending,.badge.retrying{color:var(--amber)}
-.badge.cancelled,.badge.interrupted{color:var(--muted)}
+.badge.failed{color:var(--red)}
+.badge.cancelled,.badge.interrupted,.badge.paused{color:var(--muted)}
 
 /* Forms */
 input[type=text],input[type=url],input[type=date],input[type=number],textarea,select{

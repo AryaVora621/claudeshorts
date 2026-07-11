@@ -21,15 +21,6 @@ _PROGRESS_COLS = (
 )
 
 
-def insert_job(conn: psycopg.Connection, *, job_id: int, name: str) -> None:
-    """Record a newly started job. ``job_id`` matches the in-memory job id."""
-    conn.execute(
-        "INSERT INTO jobs (id, name, status) VALUES (%s, %s, 'running') "
-        "ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, status = 'running'",
-        (job_id, name),
-    )
-
-
 def save_snapshot(conn: psycopg.Connection, job_id: int, snap: dict[str, Any]) -> None:
     """Persist a partial or full state update for a job (progress, log, status)."""
     present = [c for c in _PROGRESS_COLS if c in snap]
@@ -62,14 +53,21 @@ def max_id(conn: psycopg.Connection) -> int:
 
 
 def mark_running_interrupted(conn: psycopg.Connection) -> int:
-    """Flag jobs left `running` by a dead process as `interrupted`. Startup-only.
+    """Flag jobs left `RUNNING` by a dead process as `FAILED`. Startup-only.
 
-    A job only runs inside a live server process; if a row is still `running`
-    when the table is read fresh, its thread died with the old process. Returns
-    the number of rows updated.
+    A job only runs inside a live server process; if a row is still RUNNING
+    when the table is read fresh at the next startup, its worker thread died
+    with the old process (no other code path can un-RUNNING a job — claim_next
+    only ever claims PENDING/RETRYING rows). FAILED is the terminal status
+    here (not a bespoke "interrupted" value) because it's a real state in the
+    job state machine (see claudeshorts/jobs/queue.py) that the dashboard,
+    API, and CSS already know how to render; a job's own retry/backoff logic
+    never re-claims a FAILED row, so this is a safe one-way exit for orphans.
+    Returns the number of rows updated.
     """
     cur = conn.execute(
-        "UPDATE jobs SET status = 'interrupted', finished_at = now() "
-        "WHERE status = 'running'"
+        "UPDATE jobs SET status = 'FAILED', finished_at = now(), "
+        "error = 'orphaned: process restarted while job was RUNNING' "
+        "WHERE status = 'RUNNING'"
     )
     return cur.rowcount
