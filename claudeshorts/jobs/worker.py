@@ -69,7 +69,7 @@ def dispatch_one(worker_id: str) -> bool:
                       time.monotonic() - started)
         except Exception as exc:
             log.error("job %s (%s) failed after %.1fs: %s", job["id"], job["job_type"],
-                       time.monotonic() - started, exc)
+                       time.monotonic() - started, exc, exc_info=True)
             queue.fail(job["id"], str(exc))
         finally:
             progress.clear_sink()
