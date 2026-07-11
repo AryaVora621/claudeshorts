@@ -27,7 +27,7 @@ RENDERER_DIR = ROOT / "renderer"
 DB_PATH = DATA_DIR / "app.db"
 
 SETTINGS_PATH = CONFIG_DIR / "settings.yaml"
-SOURCES_PATH = CONFIG_DIR / "sources.yaml"
+SOURCES_PATH = CONFIG_DIR / "profiles" / "fork-ai" / "sources.yaml"
 
 
 def ensure_dirs() -> None:

@@ -1,0 +1,8 @@
+display_name: "fork.ai"
+handle: "@fork.ai"
+brand_color: "#A855F7"
+posts_per_day: 3
+platforms: ["youtube", "tiktok", "instagram"]
+browser: chromium
+login_health: unknown
+notes: ""
