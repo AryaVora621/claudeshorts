@@ -20,8 +20,11 @@ def _clean_tables():
 	tables (now that "profiles" cascades into items/posts/threads/runs/
 	jobs/post_threads too) and race with the previous test's connection
 	teardown, producing spurious `DeadlockDetected` errors. A single
-	TRUNCATE of all tables together acquires every lock in one atomic
-	statement, which Postgres cannot deadlock against itself.
+	statement can't deadlock against itself, which is why this fixes the
+	previous per-table-loop races — but it can still deadlock against a
+	genuinely concurrent session (e.g. two test runs against the same
+	shared remote DB at once), since that session's own lock-acquisition
+	order can still cross this one's.
 	"""
 	db.init_db()
 	with db.connect() as conn:
