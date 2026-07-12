@@ -11,12 +11,13 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
+from ..browser.profiles import load_sources as load_profile_sources
 from ..config import settings
-from ..config import sources as load_sources
 from ..store import connect
 from ..store.items import get_items, recent_items
 from ..store.pins import pinned_item_ids
 from ..store.posts import used_item_ids
+from ..store.profiles import get_profile_by_id
 from ..store.threads import open_threads
 
 # Small stopword set so token overlap reflects topical, not grammatical, words.
@@ -42,8 +43,8 @@ def _tokens(text: str | None) -> set[str]:
     }
 
 
-def _source_weights() -> dict[str, float]:
-    return {s["name"]: float(s.get("weight", 1.0)) for s in load_sources()}
+def _source_weights(profile_slug: str) -> dict[str, float]:
+    return {s["name"]: float(s.get("weight", 1.0)) for s in load_profile_sources(profile_slug)}
 
 
 def _recency_bonus(item: dict, window_days: int) -> float:
@@ -95,16 +96,21 @@ def _match_thread(item: dict, threads: list[dict]) -> dict | None:
 
 
 def select_topics(
-    limit: int | None = None, lookback_days: int | None = None,
+    profile_id: int, limit: int | None = None, lookback_days: int | None = None,
 ) -> list[dict[str, Any]]:
-    """Pick up to `limit` topics. Each result is:
+    """Pick up to `limit` topics for `profile_id`. Each result is:
     ``{item, score, weight, follow_up_thread}``.
     """
+    with connect() as conn:
+        profile = get_profile_by_id(conn, profile_id)
+    if not profile:
+        raise ValueError(f"no profile {profile_id}")
+
     cfg = settings()
-    limit = limit or cfg.get("posts_per_day", 3)
+    limit = limit or profile.get("posts_per_day") or cfg.get("posts_per_day", 3)
     select_cfg = cfg.get("select", {})
     lookback = lookback_days or select_cfg.get("lookback_days", 14)
-    weights = _source_weights()
+    weights = _source_weights(profile["slug"])
 
     interest = select_cfg.get("interest", {})
     entities = _flatten_keywords(interest.get("entities"))
@@ -114,12 +120,14 @@ def select_topics(
     max_hits = int(interest.get("max_hits", 2))
 
     with connect() as conn:
-        used = used_item_ids(conn, lookback)
+        used = used_item_ids(conn, lookback, profile_id)
+        # Pins are a dashboard operator action, not yet profile-scoped (a
+        # follow-up, not in scope here) — kept global for now.
         pinned_ids = [i for i in pinned_item_ids(conn) if i not in used]
         pinned = get_items(conn, pinned_ids)  # preserves pin order
         skip = used | set(pinned_ids)
-        candidates = [it for it in recent_items(conn, lookback) if it["id"] not in skip]
-        threads = open_threads(conn)
+        candidates = [it for it in recent_items(conn, lookback, profile_id) if it["id"] not in skip]
+        threads = open_threads(conn, profile_id)
 
     selected: list[dict[str, Any]] = []
     picked_tokens: list[set[str]] = []

@@ -6,11 +6,13 @@ import logging
 from typing import Any, Callable
 
 from .. import progress
+from ..browser.profiles import load_prompt
 from ..config import settings
 from ..store import connect
 from ..store.items import get_item
 from ..store.pins import unpin_item
 from ..store.posts import insert_post
+from ..store.profiles import get_profile_by_id
 from ..store.threads import link_post_thread, open_threads, upsert_thread
 from . import style_rules
 from .generator import GenerateFn, generate_post
@@ -33,7 +35,9 @@ def _prior_coverage(thread: dict) -> str:
     return f"{thread['title']}: {summary}".strip()
 
 
-def _persist_post(conn, item: dict, data: dict, *, follow_up: bool) -> dict[str, Any]:
+def _persist_post(
+    conn, item: dict, data: dict, *, profile_id: int, follow_up: bool,
+) -> dict[str, Any]:
     """Insert a generated post + thread link; clear any pin on its item."""
     style_cfg = settings().get("styles", {})
     data["theme"] = style_rules.pin_brand_colors(
@@ -51,12 +55,14 @@ def _persist_post(conn, item: dict, data: dict, *, follow_up: bool) -> dict[str,
         theme=data["theme"],
         status="draft",
         layout=layout,
+        profile_id=profile_id,
     )
     thread_id = upsert_thread(
         conn,
         slug=data["thread_slug"],
         title=data["thread_title"],
         summary=data["thread_summary"],
+        profile_id=profile_id,
     )
     link_post_thread(conn, post_id, thread_id)
     unpin_item(conn, item["id"])  # consumed — drop it from the manual queue
@@ -70,12 +76,13 @@ def _persist_post(conn, item: dict, data: dict, *, follow_up: bool) -> dict[str,
 
 
 def run_generate(
+    profile_id: int,
     limit: int | None = None,
     *,
     generate_fn: GenerateFn = generate_post,
     on_progress: ProgressFn | None = None,
 ) -> list[dict[str, Any]]:
-    """Generate draft posts for the day's selected topics (batch of up to 20).
+    """Generate draft posts for `profile_id`'s selected topics (batch of up to 20).
 
     Resilient: each post is generated independently, so one bad item (invalid
     model output, timeout) is logged and skipped rather than aborting the whole
@@ -85,12 +92,17 @@ def run_generate(
     """
     if limit is not None:
         limit = max(1, min(MAX_BATCH, limit))
-    topics = select_topics(limit=limit)
+    topics = select_topics(profile_id, limit=limit)
     total = len(topics)
     results: list[dict[str, Any]] = []
     failures = 0
 
     with connect() as conn:
+        profile = get_profile_by_id(conn, profile_id)
+        # Profile-owned voice/tone guidance, prepended ahead of the shared
+        # structural system prompt (see generator.generate_post).
+        profile_prompt = load_prompt(profile["slug"]) if profile else ""
+
         for idx, topic in enumerate(topics, 1):
             item = topic["item"]
             thread = topic["follow_up_thread"]
@@ -102,9 +114,9 @@ def run_generate(
             if on_progress:
                 on_progress("start", idx, total, title, None)
             try:
-                data = generate_fn(item, prior)
+                data = generate_fn(item, prior, profile_prompt=profile_prompt)
                 result = _persist_post(conn, item, data,
-                                       follow_up=thread is not None)
+                                       profile_id=profile_id, follow_up=thread is not None)
             except Exception as exc:  # isolate: keep the batch going
                 failures += 1
                 logger.warning("generation failed [%d/%d] for item %s (%s): %s",
@@ -129,13 +141,18 @@ def generate_for_item(
     """Generate a single draft post from one specific item (dashboard action).
 
     Bypasses daily selection but still consults content memory so a matching
-    open thread becomes a follow-up. Raises if the item id is unknown.
+    open thread becomes a follow-up. Raises if the item id is unknown. The
+    item's own `profile_id` (set at ingest time) is the scope here — there is
+    no separate profile argument since the item already carries it.
     """
     with connect() as conn:
         item = get_item(conn, item_id)
         if not item:
             raise ValueError(f"no item with id {item_id}")
-        thread = _match_thread(item, open_threads(conn))
+        profile_id = item["profile_id"]
+        profile = get_profile_by_id(conn, profile_id) if profile_id else None
+        profile_prompt = load_prompt(profile["slug"]) if profile else ""
+        thread = _match_thread(item, open_threads(conn, profile_id))
         prior = _prior_coverage(thread) if thread else None
-        data = generate_fn(item, prior)
-        return _persist_post(conn, item, data, follow_up=thread is not None)
+        data = generate_fn(item, prior, profile_prompt=profile_prompt)
+        return _persist_post(conn, item, data, profile_id=profile_id, follow_up=thread is not None)

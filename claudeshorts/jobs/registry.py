@@ -24,9 +24,14 @@ def _render_post_job(payload: dict[str, Any]) -> str:
 
 
 JOB_HANDLERS: dict[str, Callable[[dict[str, Any]], Any]] = {
-    "full_run": lambda payload: pipeline_service.run_full_pipeline_service(force=True),
-    "ingest": lambda payload: pipeline_service.run_ingest_service(),
-    "generate": lambda payload: pipeline_service.run_generate_service(),
+    "full_run": lambda payload: pipeline_service.run_full_pipeline_service(
+        profile_id=payload["profile_id"], force=True,
+    ),
+    "ingest": lambda payload: pipeline_service.run_ingest_service(profile_id=payload["profile_id"]),
+    "generate": lambda payload: pipeline_service.run_generate_service(profile_id=payload["profile_id"]),
+    # generate_from_item / render_post are already per-item/per-post, which
+    # already carry an implicit profile via the item/post row itself now
+    # that Task 4's schema is in place — left unchanged.
     "generate_from_item": lambda payload: pipeline_service.generate_from_item_service(payload["item_id"]),
     "render_post": _render_post_job,
 }

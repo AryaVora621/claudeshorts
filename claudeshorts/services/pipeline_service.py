@@ -17,14 +17,17 @@ from ..review import assemble_review
 from ..store import connect, get_post
 
 
-def run_ingest_service(since: str | None = None, limit: int | None = None) -> dict[str, Any]:
-    return run_ingest(since=since, limit=limit)
+def run_ingest_service(
+    profile_id: int, since: str | None = None, limit: int | None = None,
+) -> dict[str, Any]:
+    return run_ingest(profile_id, since=since, limit=limit)
 
 
 def run_generate_service(
-    limit: int | None = None, on_progress: Callable[..., None] | None = None,
+    profile_id: int, limit: int | None = None,
+    on_progress: Callable[..., None] | None = None,
 ) -> list[dict[str, Any]]:
-    return run_generate(limit=limit, on_progress=on_progress)
+    return run_generate(profile_id, limit=limit, on_progress=on_progress)
 
 
 def generate_from_item_service(item_id: int) -> dict[str, Any]:
@@ -47,9 +50,10 @@ def render_post_service(post_id: int) -> dict[str, Any]:
 
 
 def run_full_pipeline_service(
-    limit: int | None = None, force: bool = False, skip_render: bool = False,
+    profile_id: int, limit: int | None = None, force: bool = False,
+    skip_render: bool = False,
 ) -> dict[str, Any]:
-    return run_pipeline(limit=limit, force=force, skip_render=skip_render)
+    return run_pipeline(profile_id, limit=limit, force=force, skip_render=skip_render)
 
 
 def drain_scheduled_posts_service() -> list[int]:
