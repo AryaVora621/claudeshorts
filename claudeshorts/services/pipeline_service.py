@@ -15,6 +15,7 @@ from ..publish import publish_due_posts
 from ..render import render_post
 from ..review import assemble_review
 from ..store import connect, get_post
+from . import posts_service
 
 
 def run_ingest_service(since: str | None = None, limit: int | None = None) -> dict[str, Any]:
@@ -38,6 +39,7 @@ def render_post_service(post_id: int) -> dict[str, Any]:
         raise ValueError(f"no post {post_id}")
     result = render_post(post)
     review_dir = assemble_review(post, result)
+    posts_service.maybe_auto_publish(post_id)
     return {
         "frames": result.get("frames"),
         "duration_ms": result.get("duration_ms"),

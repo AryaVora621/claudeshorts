@@ -4,10 +4,21 @@ import pytest
 
 from claudeshorts.services import posts_service
 from claudeshorts.store import connect, insert_post, set_schedule
+from claudeshorts.store import set_auto_publish, upsert_profile
+
+
+def _mk_profile(**overrides):
+    kwargs = dict(slug="test-profile", display_name="Test Profile")
+    kwargs.update(overrides)
+    with connect() as conn:
+        return upsert_profile(conn, **kwargs)
 
 
 def _mk_post(**overrides):
     kwargs = dict(item_ids=[1], title="T", slides={"a": 1}, captions={"b": 2})
+    # profile_id became required (Task 4); tests that don't care which
+    # profile just get a throwaway one.
+    kwargs.setdefault("profile_id", _mk_profile())
     kwargs.update(overrides)
     with connect() as conn:
         return posts_service_test_insert(conn, kwargs)
@@ -109,3 +120,33 @@ def test_export_post_now_approves_and_exports(monkeypatch):
     with connect() as conn:
         from claudeshorts.store import get_post
         assert get_post(conn, post_id)["status"] == "approved"
+
+
+def test_maybe_auto_publish_exports_when_profile_auto_publish_true(monkeypatch):
+    profile_id = _mk_profile(slug="headless-profile", display_name="Headless")
+    with connect() as conn:
+        set_auto_publish(conn, profile_id, True)
+    post_id = _mk_post(profile_id=profile_id)
+
+    exported = []
+    monkeypatch.setattr(
+        posts_service, "export_post_now",
+        lambda pid: exported.append(pid),
+    )
+
+    result = posts_service.maybe_auto_publish(post_id)
+
+    assert result is True
+    assert exported == [post_id]
+
+
+def test_maybe_auto_publish_noop_when_profile_auto_publish_false():
+    profile_id = _mk_profile(slug="reviewed-profile", display_name="Reviewed")
+    post_id = _mk_post(profile_id=profile_id)
+
+    result = posts_service.maybe_auto_publish(post_id)
+
+    assert result is False
+    with connect() as conn:
+        from claudeshorts.store import get_post
+        assert get_post(conn, post_id)["status"] == "draft"

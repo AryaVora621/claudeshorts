@@ -12,7 +12,7 @@ from ..publish import export_post
 from ..store import all_posts as _store_all_posts
 from ..store import connect
 from ..store import get_post as _store_get_post
-from ..store import set_schedule, set_status
+from ..store import get_profile_by_id, set_schedule, set_status
 
 
 def _require_post(conn, post_id: int) -> dict[str, Any]:
@@ -71,3 +71,20 @@ def export_post_now(post_id: int) -> dict[str, Any]:
         set_status(conn, post_id, "approved")
     export_post(post)
     return {"post_id": post_id}
+
+
+def maybe_auto_publish(post_id: int) -> bool:
+    """Skip the manual Approve step for profiles that opted into headless
+    publishing (`profiles.auto_publish`). Called right after a post is
+    rendered so the operator only ever reviews profiles that asked for it.
+    Returns True if it exported.
+    """
+    with connect() as conn:
+        post = _store_get_post(conn, post_id)
+        if not post or not post.get("profile_id"):
+            return False
+        profile = get_profile_by_id(conn, post["profile_id"])
+    if not profile or not profile["auto_publish"]:
+        return False
+    export_post_now(post_id)
+    return True
