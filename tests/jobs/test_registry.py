@@ -10,6 +10,30 @@ def test_all_six_job_types_registered():
     assert expected <= set(registry.JOB_HANDLERS)
 
 
+def test_ingest_job_threads_profile_id_from_payload():
+    with patch("claudeshorts.services.pipeline_service.run_ingest_service") as mock_fn:
+        mock_fn.return_value = {"fetched": 1}
+        result = registry.JOB_HANDLERS["ingest"]({"profile_id": 7})
+    mock_fn.assert_called_once_with(profile_id=7)
+    assert result == {"fetched": 1}
+
+
+def test_generate_job_threads_profile_id_from_payload():
+    with patch("claudeshorts.services.pipeline_service.run_generate_service") as mock_fn:
+        mock_fn.return_value = [{"post_id": 1}]
+        result = registry.JOB_HANDLERS["generate"]({"profile_id": 7})
+    mock_fn.assert_called_once_with(profile_id=7)
+    assert result == [{"post_id": 1}]
+
+
+def test_full_run_job_threads_profile_id_from_payload():
+    with patch("claudeshorts.services.pipeline_service.run_full_pipeline_service") as mock_fn:
+        mock_fn.return_value = {"date": "2026-07-12"}
+        result = registry.JOB_HANDLERS["full_run"]({"profile_id": 7})
+    mock_fn.assert_called_once_with(profile_id=7, force=True)
+    assert result == {"date": "2026-07-12"}
+
+
 def test_generate_from_item_unpacks_payload():
     with patch("claudeshorts.services.pipeline_service.generate_for_item") as mock_fn:
         mock_fn.return_value = {"post_id": 5}

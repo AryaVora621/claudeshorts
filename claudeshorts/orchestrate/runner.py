@@ -41,13 +41,14 @@ def _retry(fn: Callable[[], Any], *, attempts: int = 4, base: float = 2.0,
 
 
 def run_pipeline(
+    profile_id: int,
     *,
     limit: int | None = None,
     force: bool = False,
     skip_render: bool = False,
     render_fn: Callable[[dict], dict] = render_post,
 ) -> dict[str, Any]:
-    """Run one daily batch. Returns a summary dict.
+    """Run one daily batch for `profile_id`. Returns a summary dict.
 
     `render_fn` is injectable for testing without a browser. Set `force` to run
     again on a day that already completed; `skip_render` to stop after generation.
@@ -59,11 +60,11 @@ def run_pipeline(
     today = date.today().isoformat()
 
     with connect() as conn:
-        prior = latest_run_for_date(conn, today)
+        prior = latest_run_for_date(conn, today, profile_id)
         if prior and prior["status"] == "ok" and not force:
             log.info("run for %s already completed (use --force to repeat)", today)
             return {"skipped": True, "reason": "already ran today", "date": today}
-        run_id = start_run(conn, today)
+        run_id = start_run(conn, today, profile_id)
         conn.commit()
 
     # A full run moves through four reported phases so the dashboard can draw a
@@ -75,14 +76,14 @@ def run_pipeline(
         progress.phase(1, n_phases, "ingest")
         progress.reset_step("ingesting news")
         log.info("ingesting news...")
-        ingest_stats = _retry(run_ingest, what="ingest")
+        ingest_stats = _retry(lambda: run_ingest(profile_id), what="ingest")
         summary["ingest"] = {k: ingest_stats[k] for k in
                              ("stored", "duplicates", "total_items") if k in ingest_stats}
 
         progress.phase(2, n_phases, "generate")
         progress.reset_step("selecting topics")
         log.info("generating up to %d posts...", limit)
-        results = _retry(lambda: run_generate(limit=limit), what="generate")
+        results = _retry(lambda: run_generate(profile_id, limit=limit), what="generate")
         summary["generated"] = [r["post_id"] for r in results]
         summary["follow_ups"] = [r["post_id"] for r in results if r["follow_up"]]
 

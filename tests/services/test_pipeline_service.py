@@ -10,16 +10,26 @@ from claudeshorts.services import pipeline_service
 def test_run_ingest_service_delegates():
     with patch("claudeshorts.services.pipeline_service.run_ingest") as mock_fn:
         mock_fn.return_value = {"fetched": 1}
-        result = pipeline_service.run_ingest_service(since="2026-01-01", limit=5)
-    mock_fn.assert_called_once_with(since="2026-01-01", limit=5)
+        result = pipeline_service.run_ingest_service(profile_id=42, since="2026-01-01", limit=5)
+    mock_fn.assert_called_once_with(42, since="2026-01-01", limit=5)
     assert result == {"fetched": 1}
+
+
+def test_run_ingest_service_requires_profile_id(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(
+        "claudeshorts.services.pipeline_service.run_ingest",
+        lambda profile_id, since=None, limit=None: captured.update(profile_id=profile_id) or {},
+    )
+    pipeline_service.run_ingest_service(profile_id=42)
+    assert captured["profile_id"] == 42
 
 
 def test_run_generate_service_delegates():
     with patch("claudeshorts.services.pipeline_service.run_generate") as mock_fn:
         mock_fn.return_value = [{"post_id": 1}]
-        result = pipeline_service.run_generate_service(limit=3)
-    mock_fn.assert_called_once_with(limit=3, on_progress=None)
+        result = pipeline_service.run_generate_service(profile_id=42, limit=3)
+    mock_fn.assert_called_once_with(42, limit=3, on_progress=None)
     assert result == [{"post_id": 1}]
 
 
@@ -48,8 +58,8 @@ def test_render_post_service_renders_and_assembles():
 def test_run_full_pipeline_service_delegates():
     with patch("claudeshorts.services.pipeline_service.run_pipeline") as mock_fn:
         mock_fn.return_value = {"date": "2026-07-10"}
-        result = pipeline_service.run_full_pipeline_service(force=True)
-    mock_fn.assert_called_once_with(limit=None, force=True, skip_render=False)
+        result = pipeline_service.run_full_pipeline_service(profile_id=42, force=True)
+    mock_fn.assert_called_once_with(42, limit=None, force=True, skip_render=False)
     assert result == {"date": "2026-07-10"}
 
 

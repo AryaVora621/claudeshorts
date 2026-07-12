@@ -15,10 +15,25 @@ from . import __version__
 from . import logging_setup
 from .config import DB_PATH
 from .services import pipeline_service
-from .store import init_db
+from .store import connect, init_db
+from .store.profiles import get_profile
 
 # Load .env (e.g. ANTHROPIC_API_KEY) before any command runs.
 load_dotenv()
+
+# Stopgap default profile until a --profile flag is added (out of scope for
+# this task; the CLI is currently single-profile-only by design).
+_DEFAULT_PROFILE_SLUG = "fork-ai"
+
+
+def _default_profile_id() -> int:
+    with connect() as conn:
+        profile = get_profile(conn, _DEFAULT_PROFILE_SLUG)
+    if not profile:
+        raise RuntimeError(
+            f"no profile '{_DEFAULT_PROFILE_SLUG}' found; seed it before running the CLI"
+        )
+    return int(profile["id"])
 
 app = typer.Typer(
     help="Automated tech/AI news -> short-form video/slideshow pipeline.",
@@ -46,7 +61,9 @@ def ingest_cmd(
 ) -> None:
     """Fetch + dedupe news into the store. [Phase 1]"""
     init_db()
-    stats = pipeline_service.run_ingest_service(since=since, limit=limit)
+    stats = pipeline_service.run_ingest_service(
+        profile_id=_default_profile_id(), since=since, limit=limit,
+    )
     typer.echo(
         f"fetched={stats['fetched']} stored={stats['stored']} "
         f"duplicates={stats['duplicates']} skipped_old={stats['skipped_old']} "
@@ -67,7 +84,7 @@ def select_cmd(
     from .generate import select_topics
 
     init_db()
-    topics = select_topics(limit=limit)
+    topics = select_topics(_default_profile_id(), limit=limit)
     if not topics:
         typer.echo("No fresh, un-posted topics available.")
         return
@@ -112,7 +129,9 @@ def generate_cmd(
                 tally["fail"] += 1
                 progress.update(task, description=f"[red]✗[/] {short}", advance=1)
 
-        results = pipeline_service.run_generate_service(limit=limit, on_progress=cb)
+        results = pipeline_service.run_generate_service(
+            profile_id=_default_profile_id(), limit=limit, on_progress=cb,
+        )
         if progress.tasks[task].total is None:  # no topics -> no callbacks fired
             progress.update(task, total=0)
 
@@ -166,7 +185,10 @@ def run_cmd(
     skip_render: bool = typer.Option(False, help="Stop after generation (no render)."),
 ) -> None:
     """Run the full daily pipeline (ingest -> ... -> review queue). [Phase 5]"""
-    summary = pipeline_service.run_full_pipeline_service(limit=limit, force=force, skip_render=skip_render)
+    init_db()
+    summary = pipeline_service.run_full_pipeline_service(
+        profile_id=_default_profile_id(), limit=limit, force=force, skip_render=skip_render,
+    )
     if summary.get("skipped"):
         typer.echo(f"Skipped: {summary['reason']} ({summary['date']}). Use --force to repeat.")
         return

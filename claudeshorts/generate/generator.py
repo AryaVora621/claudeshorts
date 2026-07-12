@@ -51,7 +51,7 @@ Rules:
 - Attribute the source naturally where it fits.
 """
 
-GenerateFn = Callable[[dict, "str | None"], dict]
+GenerateFn = Callable[..., dict]
 
 
 # --- prompt building -------------------------------------------------------
@@ -73,10 +73,12 @@ def build_user_prompt(item: dict, prior_coverage: str | None = None) -> str:
     return "\n".join(parts)
 
 
-def build_cli_prompt(item: dict, prior_coverage: str | None = None) -> str:
+def build_cli_prompt(
+    item: dict, prior_coverage: str | None = None, *, system_prompt: str = SYSTEM_PROMPT,
+) -> str:
     tool_schema = json.dumps(schema.POST_TOOL["input_schema"])
     return (
-        SYSTEM_PROMPT
+        system_prompt
         + "\n\n"
         + build_user_prompt(item, prior_coverage)
         + "\n\nRespond with ONLY a single minified JSON object (no prose, no "
@@ -90,21 +92,30 @@ def generate_post(
     item: dict,
     prior_coverage: str | None = None,
     *,
+    profile_prompt: str = "",
     client: Any | None = None,
     model: str | None = None,
     backend: str | None = None,
 ) -> dict:
-    """Generate one validated structured post via the configured backend."""
+    """Generate one validated structured post via the configured backend.
+
+    `profile_prompt` is the content profile's own voice/tone guidance
+    (config/profiles/<slug>/prompt.md). Prepended ahead of the structural
+    SYSTEM_PROMPT — profile identity wins over generic editorial rules
+    without forking SYSTEM_PROMPT per profile — and applied at the system
+    level (not the user turn) so it lands the same way for every backend.
+    """
     cfg = settings().get("model", {})
     backend = backend or cfg.get("backend", "claude_cli")
+    system_prompt = f"{profile_prompt}\n\n{SYSTEM_PROMPT}" if profile_prompt else SYSTEM_PROMPT
     prompt = (
-        build_cli_prompt(item, prior_coverage)
+        build_cli_prompt(item, prior_coverage, system_prompt=system_prompt)
         if backend == "claude_cli"
         else build_user_prompt(item, prior_coverage)
     )
     provider = registry.get_provider(backend, client=client, model=model)
     data = provider.generate_structured(
-        SYSTEM_PROMPT, prompt, schema.POST_TOOL, "emit_post",
+        system_prompt, prompt, schema.POST_TOOL, "emit_post",
     )
     errors = schema.validate_post(data)
     if errors:

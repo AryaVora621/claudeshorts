@@ -2,11 +2,27 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
 from typer.testing import CliRunner
 
 from claudeshorts.cli import app
+from claudeshorts.store import connect, init_db
+from claudeshorts.store.profiles import upsert_profile
 
 runner = CliRunner()
+
+
+@pytest.fixture(autouse=True)
+def _seed_default_profile():
+    """The CLI resolves a stopgap default profile ("fork-ai") before calling
+    into pipeline_service (see cli._default_profile_id); the commands under
+    test here mock pipeline_service itself, so the only real DB dependency
+    left is that lookup succeeding."""
+    init_db()
+    with connect() as conn:
+        upsert_profile(conn, slug="fork-ai", display_name="fork.ai")
+        conn.commit()
+    yield
 
 
 def test_ingest_cmd_calls_pipeline_service():
