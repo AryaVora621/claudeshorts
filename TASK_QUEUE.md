@@ -35,9 +35,15 @@
   helper + rebrowser-playwright dep, metric extraction, scrape
   orchestration w/ session-expiry + escalation alerting, job registry
   wiring, scheduler seeding, live verification. Self-review noted vidIQ
-  MCP bonus source is deliberately deferred (not a Phase 1 task). Awaiting
-  user's execution-approach choice (subagent-driven vs inline) before any
-  implementation starts.
+  MCP bonus source is deliberately deferred (not a Phase 1 task).
+  **Execution approach chosen (user, session 3): Subagent-Driven,
+  parallel.** Next session should dispatch fresh subagents per task via
+  `superpowers:subagent-driven-development`, running independent tasks in
+  parallel where dependencies allow: Task 1 (schema) first and alone;
+  Tasks 2, 3, 4 depend only on Task 1 and can run in parallel; Task 5
+  needs 2+3+4 done; Task 6 needs 5; Task 7 needs 6; Task 8 (manual live
+  verification) last. Two-stage review between tasks per the skill.
+  Not yet started.
   See `NEXT_SESSION_PROMPT.md` for full resume detail.
 - Follow-up (not blocking): `tests/scheduling/conftest.py`'s
   `_clean_tables` fixture truncates the shared `profiles` table and
