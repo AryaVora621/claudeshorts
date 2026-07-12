@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 
 from ..config import settings
 from ..jobs import queue as job_queue
+from ..store import db
+from ..store import profiles as profiles_store
 from . import store as sched_store
 from .compute import next_run_at
 
@@ -18,34 +20,60 @@ log = logging.getLogger("claudeshorts.scheduling")
 
 
 def seed_default_schedules() -> None:
+    """Seed one full_run/drain_scheduled_posts/weekly_report schedule per
+    active profile. Schedule names are disambiguated per profile (e.g.
+    "full_run:fork-ai") so re-seeding on restart stays idempotent per
+    profile via upsert_schedule's ON CONFLICT (name) behavior, and each
+    schedule's payload carries {"profile_id": ...} so the job it enqueues
+    knows which profile's pipeline to run.
+    """
     cfg = settings().get("schedule", {})
     now = datetime.now(timezone.utc)
 
     daily_at = cfg.get("daily_run_time", "08:00")
-    sched_store.upsert_schedule(
-        "daily-full-run", "full_run", {}, "daily_at",
-        daily_at=daily_at,
-        initial_next_run_at=next_run_at("daily_at", daily_at=daily_at, after=now),
-    )
-
     every_minutes = cfg.get("drain_every_minutes", 60)
-    sched_store.upsert_schedule(
-        "hourly-scheduled-drain", "drain_scheduled_posts", {}, "every_minutes",
-        every_minutes=every_minutes,
-        initial_next_run_at=next_run_at(
-            "every_minutes", every_minutes=every_minutes, after=now,
-        ),
-    )
-
     weekly_at = cfg.get("weekly_report_time", "09:00")
     weekly_weekday = cfg.get("weekly_report_weekday", 0)
-    sched_store.upsert_schedule(
-        "weekly-report", "weekly_report", {}, "daily_at",
-        daily_at=weekly_at, weekday=weekly_weekday,
-        initial_next_run_at=next_run_at(
-            "daily_at", daily_at=weekly_at, weekday=weekly_weekday, after=now,
-        ),
-    )
+
+    # One connection for the whole seeding pass (list_profiles + every
+    # upsert_schedule call) rather than one connection per call — seeding N
+    # profiles across 3 job types used to mean up to 3N+1 separate
+    # connections opened in a tight loop, which was enough to trip
+    # intermittent write-then-read visibility issues against the remote
+    # Supabase pooler in test runs. A single connection/transaction avoids
+    # that churn and commits everything atomically on exit.
+    with db.connect() as conn:
+        active_profiles = profiles_store.list_profiles(conn, active_only=True)
+
+        for profile in active_profiles:
+            slug = profile["slug"]
+            payload = {"profile_id": profile["id"]}
+
+            sched_store.upsert_schedule(
+                f"full_run:{slug}", "full_run", payload, "daily_at",
+                daily_at=daily_at,
+                initial_next_run_at=next_run_at("daily_at", daily_at=daily_at, after=now),
+                conn=conn,
+            )
+
+            sched_store.upsert_schedule(
+                f"drain_scheduled_posts:{slug}", "drain_scheduled_posts", payload,
+                "every_minutes",
+                every_minutes=every_minutes,
+                initial_next_run_at=next_run_at(
+                    "every_minutes", every_minutes=every_minutes, after=now,
+                ),
+                conn=conn,
+            )
+
+            sched_store.upsert_schedule(
+                f"weekly_report:{slug}", "weekly_report", payload, "daily_at",
+                daily_at=weekly_at, weekday=weekly_weekday,
+                initial_next_run_at=next_run_at(
+                    "daily_at", daily_at=weekly_at, weekday=weekly_weekday, after=now,
+                ),
+                conn=conn,
+            )
 
 
 def tick() -> int:

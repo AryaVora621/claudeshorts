@@ -5,28 +5,43 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from claudeshorts.scheduling import compute, scheduler, store as sched_store
+from claudeshorts.store.profiles import upsert_profile
 
 
-def test_seed_default_schedules_creates_three():
+def test_seed_default_schedules_creates_three(db_conn):
+    upsert_profile(db_conn, slug="fork-ai", display_name="fork.ai")
+    db_conn.commit()
+
     scheduler.seed_default_schedules()
     from claudeshorts.store import db
     with db.connect() as conn:
         rows = conn.execute("SELECT name FROM schedules").fetchall()
     names = {r["name"] for r in rows}
-    assert {"daily-full-run", "hourly-scheduled-drain", "weekly-report"} <= names
+    assert {
+        "full_run:fork-ai", "drain_scheduled_posts:fork-ai", "weekly_report:fork-ai",
+    } <= names
 
 
-def test_seed_default_schedules_leaves_nothing_due_immediately():
+def test_seed_default_schedules_leaves_nothing_due_immediately(db_conn):
+    upsert_profile(db_conn, slug="fork-ai", display_name="fork.ai")
+    db_conn.commit()
+
     scheduler.seed_default_schedules()
     just_after_seed = datetime.now(timezone.utc) + timedelta(seconds=1)
     due = sched_store.list_due(just_after_seed)
     names = {s["name"] for s in due}
     assert not (
-        {"daily-full-run", "hourly-scheduled-drain", "weekly-report"} & names
+        {
+            "full_run:fork-ai", "drain_scheduled_posts:fork-ai",
+            "weekly_report:fork-ai",
+        } & names
     )
 
 
-def test_seed_default_schedules_next_run_at_matches_compute():
+def test_seed_default_schedules_next_run_at_matches_compute(db_conn):
+    upsert_profile(db_conn, slug="fork-ai", display_name="fork.ai")
+    db_conn.commit()
+
     from claudeshorts.config import settings
     cfg = settings().get("schedule", {})
     before = datetime.now(timezone.utc)
@@ -59,8 +74,8 @@ def test_seed_default_schedules_next_run_at_matches_compute():
         )
         for anchor in (before, after)
     }
-    assert rows["daily-full-run"] in expected_daily_choices
-    assert rows["weekly-report"] in expected_weekly_choices
+    assert rows["full_run:fork-ai"] in expected_daily_choices
+    assert rows["weekly_report:fork-ai"] in expected_weekly_choices
 
     # every_minutes preserves sub-second precision from whatever instant
     # seed_default_schedules() sampled internally, which only has to fall
@@ -69,21 +84,24 @@ def test_seed_default_schedules_next_run_at_matches_compute():
     drain_minutes = cfg.get("drain_every_minutes", 60)
     lower = before + timedelta(minutes=drain_minutes)
     upper = after + timedelta(minutes=drain_minutes)
-    assert lower <= rows["hourly-scheduled-drain"] <= upper
+    assert lower <= rows["drain_scheduled_posts:fork-ai"] <= upper
 
 
-def test_reseeding_does_not_reset_next_run_at():
+def test_reseeding_does_not_reset_next_run_at(db_conn):
+    upsert_profile(db_conn, slug="fork-ai", display_name="fork.ai")
+    db_conn.commit()
+
     scheduler.seed_default_schedules()
     from claudeshorts.store import db
     with db.connect() as conn:
         conn.execute(
             "UPDATE schedules SET next_run_at = %s, last_run_job_id = 42, "
-            "enabled = false WHERE name = 'daily-full-run'",
+            "enabled = false WHERE name = 'full_run:fork-ai'",
             (datetime.now(timezone.utc) + timedelta(days=3),),
         )
         row_before = conn.execute(
             "SELECT next_run_at, last_run_job_id, enabled FROM schedules "
-            "WHERE name = 'daily-full-run'"
+            "WHERE name = 'full_run:fork-ai'"
         ).fetchone()
 
     # Re-seed (simulating a process restart) must not touch next_run_at,
@@ -93,7 +111,7 @@ def test_reseeding_does_not_reset_next_run_at():
     with db.connect() as conn:
         row_after = conn.execute(
             "SELECT next_run_at, last_run_job_id, enabled FROM schedules "
-            "WHERE name = 'daily-full-run'"
+            "WHERE name = 'full_run:fork-ai'"
         ).fetchone()
 
     assert row_after["next_run_at"] == row_before["next_run_at"]
@@ -208,3 +226,21 @@ def test_tick_contains_mark_ran_failure_and_still_processes_other_schedules(monk
     assert processed_2 == 1
     assert enqueue_calls.count("scheduled: broken") == 2
     assert enqueue_calls.count("scheduled: healthy") == 1
+
+
+def test_seed_default_schedules_creates_one_full_run_per_active_profile(db_conn):
+    p1 = upsert_profile(db_conn, slug="profile-one", display_name="One")
+    p2 = upsert_profile(db_conn, slug="profile-two", display_name="Two")
+    inactive = upsert_profile(db_conn, slug="profile-three", display_name="Three")
+    db_conn.execute("UPDATE profiles SET active = false WHERE id = %s", (inactive,))
+    db_conn.commit()
+
+    scheduler.seed_default_schedules()
+
+    rows = db_conn.execute("SELECT name, payload FROM schedules WHERE job_type = 'full_run'").fetchall()
+    names = {r["name"] for r in rows}
+    assert "full_run:profile-one" in names
+    assert "full_run:profile-two" in names
+    assert "full_run:profile-three" not in names
+    payloads = {r["name"]: r["payload"] for r in rows}
+    assert payloads["full_run:profile-one"]["profile_id"] == p1
