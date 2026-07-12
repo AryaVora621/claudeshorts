@@ -1,17 +1,51 @@
 # Task Queue
 
 ## Open
-- **Multi-profile platform reshape — sub-project A ready to execute**
-  (2026-07-11): design spec committed at
-  `docs/superpowers/specs/2026-07-11-multi-profile-platform-reshape-design.md`;
-  implementation plan written at
-  `docs/superpowers/plans/2026-07-11-multi-profile-data-model.md` (8 tasks,
-  4 parallel-dispatch waves — see CHECKPOINT_LAST.md for the wave
-  breakdown). Awaiting user's execution-mode choice (Subagent-Driven vs
-  Inline) before any task starts. Sub-projects B (analytics collection:
-  browser scraping + vidIQ MCP) and C (dashboard reshape) are scoped at a
-  high level in the same spec but each needs its own brainstorming session
-  before planning — do not skip straight to implementing them.
+- **Multi-profile platform reshape — sub-project A CLOSED (final review passed 2026-07-12), B/C in brainstorming**
+  all 8 tasks merged to `main` (see Done section). Final whole-branch
+  review dispatched and passed — verdict "safe to formally mark closed",
+  no blocking issues. Two non-blocking follow-ups carried forward:
+  (1) `jobs` rows don't carry `profile_id` as a real column, only inside
+  `jobs.payload` JSONB (`jobs/registry.py:32-34`) — sub-project C's
+  job-health dashboard will need either a real column + backfill or
+  payload-JSON filtering; (2) `tests/*/conftest.py` has 8 duplicated
+  copies of the `_clean_tables` fixture that truncates the shared
+  `profiles` table with nothing reseeding it after — recommend dedupe to
+  one `tests/conftest.py` + reseed-after-truncate or transactional
+  rollback.
+  STILL UNRESOLVED: user reported "I only see midnight-curiosity profile"
+  but has not yet said where (which page/command) — asked twice this
+  session, no response after 600s both times. Do not guess further; ask
+  again next session before investigating.
+  **SEQUENCING DECIDED (user, session 2): B ships before C.** User wants
+  C's dashboard to show real revenue/views/retention/platform-breakdown
+  charts (per a reference mockup they shared), not placeholders — so
+  sub-project B (real analytics collection) must be built first.
+  Sub-project C brainstorming (profile-switcher UX only — user picked
+  "single active-profile switcher") is paused, not abandoned; resume once
+  B lands. Sub-project C's other open questions (stat tile selection,
+  auto_publish=true profiles hide the review tile instead of showing
+  substitute activity — user decided this too) will be revisited then.
+  **B design spec written and committed**:
+  `docs/superpowers/specs/2026-07-12-analytics-collection-design.md`
+  (`449f65c`). Phase 1 = YouTube only (Instagram/TikTok later phases).
+  **B implementation plan written**:
+  `docs/superpowers/plans/2026-07-12-analytics-collection-youtube.md`
+  (not yet committed) — 8 tasks: schema, store CRUD, browser session
+  helper + rebrowser-playwright dep, metric extraction, scrape
+  orchestration w/ session-expiry + escalation alerting, job registry
+  wiring, scheduler seeding, live verification. Self-review noted vidIQ
+  MCP bonus source is deliberately deferred (not a Phase 1 task). Awaiting
+  user's execution-approach choice (subagent-driven vs inline) before any
+  implementation starts.
+  See `NEXT_SESSION_PROMPT.md` for full resume detail.
+- Follow-up (not blocking): `tests/scheduling/conftest.py`'s
+  `_clean_tables` fixture truncates the shared `profiles` table and
+  nothing reseeds it afterward — every standalone run of
+  `tests/scheduling/` against the shared remote DB breaks other test
+  directories/manual use until someone reseeds `profiles`. Consider having
+  the fixture reseed a baseline profile, or moving off the shared DB for
+  this fixture.
 - SKIPPED (user decision, `NEEDS_FROM_YOU.md` §2): chunk 10 (real API-key
   publishing plugins for YouTube/TikTok/Instagram) — keeping folder-export
   only for now. Superseded by the reshape's analytics-via-scraping
@@ -41,6 +75,13 @@
   progress streaming, chunks 2/6, both done. See Done section.)
 
 ## Done
+- **Multi-profile data model — sub-project A** (2026-07-11/12): all 8
+  tasks merged to `main` (`9ac09e8`, `e62913e`, `860d922`, `d56c855`,
+  `a9f14bb`). Per-task spec+quality reviews all passed. Full suite:
+  233 passed, 17 known pre-existing failures (documented non-goal),
+  0 new. `profiles` table reseeded (`fork-ai`=1, `midnight-curiosity`=2)
+  after a scheduling-test-truncation incident emptied it mid-session.
+  Final whole-branch review not yet dispatched — see Open.
 - **Chunk 12 — Telegram bot** (2026-07-11): full chunk complete —
   `GET /profiles` + `POST /jobs/{id}/retry` REST endpoints, `ApiClient`
   (thin REST wrapper), command handlers (`/queue /generate /approve
